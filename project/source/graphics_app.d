@@ -10,9 +10,9 @@ import std.algorithm;
 
 import obj_parser;
 import heightmap_gen;
+import camera;
+import linear;
 
-import dlib.math.vector;
-import dlib.math.matrix;
 
 
 /// Create a basic shader
@@ -225,15 +225,15 @@ GLuint[] InitIndices(int width, int height){
     return indices;
 }
 
+
+
+
 struct GraphicsApp{
     bool mGameIsRunning=true;
     SDL_GLContext mContext;
     SDL_Window* mWindow;
-    // BasicCamera* m_pGameCamera;
-
-    // Mesh mQuadMesh;
-    // Mesh mBunnyMesh;
     Mesh mTerrainMesh;
+    Camera camera;
     
     Mesh mActiveMesh; // Assign to either triangle or bunny depending on key press
     auto mFillState = GL_FILL;
@@ -272,6 +272,8 @@ struct GraphicsApp{
 
         // Check OpenGL version
         GetOpenGLVersionInfo();
+
+        camera = new Camera();
     }
 
     ~this(){
@@ -305,24 +307,38 @@ struct GraphicsApp{
                     }
                     writeln("Toggling Wire Mode");
                 }
-                else if(event.key.keysym.scancode == SDL_SCANCODE_UP){
-                    mHeightChange += 0.1;
-                    writeln("Increasing Height");
+                else if(event.key.keysym.sym == SDLK_DOWN){
+                    camera.MoveBackward();
                 }
-                else if(event.key.keysym.scancode == SDL_SCANCODE_DOWN){
-                    mHeightChange -= 0.1;
-                    writeln("Decreasing Height");
+                else if(event.key.keysym.sym == SDLK_UP){
+                    camera.MoveForward();
                 }
-                else{
-                    writeln("Pressed a key ");
+                else if(event.key.keysym.sym == SDLK_LEFT){
+                    camera.MoveLeft();
                 }
+                else if(event.key.keysym.sym == SDLK_RIGHT){
+                    camera.MoveRight();
+                }
+                writeln("Camera Position: ",camera.mEyePosition);
+            
+						
             }
         }
+        int mouseX,mouseY;
+        SDL_GetMouseState(&mouseX,&mouseY);
+        camera.MouseLook(mouseX,mouseY);
     }
 
     void SetupScene(){
         // Build a basic shader
         mBasicGraphicsPipeline = BuildBasicShader("./pipelines/basic/basic.vert","./pipelines/basic/basic.frag");
+        // mat4 projectionMatrix = camera.getProjectionMatrix(45.0f, mScreenWidth / float(mScreenHeight), 0.1f, 100.0f);
+        // GLuint viewLoc = glGetUniformLocation(mBasicGraphicsPipeline, "view");
+        // GLuint projLoc = glGetUniformLocation(mBasicGraphicsPipeline, "projection");
+
+        // glUniformMatrix4fv(viewLoc, 1, GL_FALSE, camera.getViewMatrix().DataPtr());
+        // glUniformMatrix4fv(projLoc, 1, GL_FALSE, projectionMatrix.DataPtr());
+
         
         mTerrainMesh = MakeMeshFromHeightmap(generateHeightmap(16,16,5));
         mActiveMesh = mTerrainMesh;
@@ -343,15 +359,17 @@ struct GraphicsApp{
         // Do opengl drawing
         glUseProgram(mBasicGraphicsPipeline);
 
-        GLint location = glGetUniformLocation(mBasicGraphicsPipeline, "uHeightModifier");
-        if (location > -1) {
-            glUniform1f(location, mHeightChange);
-        }
-        else{
-            writeln("Could not find uHieghtModifer");
-        }
-        // glBindBuffer(GL_ARRAY_BUFFER, mActiveMesh.mVBO);
-        // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mActiveMesh.mIBO);
+        GLuint viewLoc = glGetUniformLocation(mBasicGraphicsPipeline, "uView");
+        GLuint projLoc = glGetUniformLocation(mBasicGraphicsPipeline, "uProjection");
+
+        // Get matrices from Camera
+        mat4 viewMatrix = camera.getViewMatrix();
+        mat4 projectionMatrix = camera.getProjectionMatrix(90.0f, 640.0f / 480.0f, 0.1f, 100.0f);
+
+        // Send matrices to shader
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, viewMatrix.DataPtr());
+        glUniformMatrix4fv(projLoc, 1, GL_FALSE, projectionMatrix.DataPtr());
+
         glBindVertexArray(mActiveMesh.mVAO);
         glBindBuffer(GL_ARRAY_BUFFER, mActiveMesh.mVBO); 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mActiveMesh.mIBO);
@@ -393,6 +411,8 @@ struct GraphicsApp{
         // Setup the graphics scene
         SetupScene();
         // Run the graphics application loop
+        SDL_WarpMouseInWindow(mWindow,640/2,320/2);
+
         while(mGameIsRunning){
             AdvanceFrame();
         }
