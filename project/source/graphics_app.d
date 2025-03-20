@@ -11,6 +11,10 @@ import std.algorithm;
 import obj_parser;
 import heightmap_gen;
 
+import dlib.math.vector;
+import dlib.math.matrix;
+
+
 /// Create a basic shader
 /// The result is a 'GLuint' representing the compiled 'program object' or otherwise 'graphics pipeline'
 /// that is compiled and ready to execute on the GPU.
@@ -121,15 +125,28 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap){
     for(int i = 0; i < heightmap.width; i++){
         for(int j = 0; j < heightmap.height; j++){
             //Vertex data
-            mVertexData ~= i;
+            mVertexData ~= (i - heightmap.width/2) * .1;
+            mVertexData ~= (j - heightmap.height/2) * .1;
             mVertexData ~= heightmap.y_vals[i][j];
-            mVertexData ~= j;
+            
             //Normal data
-            mVertexData ~= 0.0f;
-            mVertexData ~= 1.0f;
-            mVertexData ~= 0.0f;
+            //random number between 0 and 1
+
+            import std.random;
+
+            mVertexData ~= heightmap.y_vals[i][j];
+            mVertexData ~= heightmap.y_vals[i][j];
+            mVertexData ~= heightmap.y_vals[i][j];
+            // mVertexData ~= uniform(0.0,1.0);
         }
     }
+    // for(int i = 0; i < heightmap.width; i++){
+    //     for(int j = 0; j < heightmap.height; j++){
+    //         write(mVertexData[i*heightmap.height+j]);
+    //         write(" "); 
+    //     }
+    //     writeln();
+    // }
 
     //Index Data:
     //Example 
@@ -156,7 +173,7 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap){
    #0         #m 
     */
     GLuint[] mIndices = InitIndices(heightmap.width, heightmap.height);
-    m.mNumIndices = mIndices.length;
+    m.mNumIndices = cast(int) mIndices.length;
 
      // Vertex Arrays Object (VAO) Setup
     glGenVertexArrays(1, &m.mVAO);
@@ -188,7 +205,7 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap){
     // as we do not want to leave them open. 
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
-
+    return m;
 }
 
 GLuint[] InitIndices(int width, int height){
@@ -212,6 +229,7 @@ struct GraphicsApp{
     bool mGameIsRunning=true;
     SDL_GLContext mContext;
     SDL_Window* mWindow;
+    // BasicCamera* m_pGameCamera;
 
     // Mesh mQuadMesh;
     // Mesh mBunnyMesh;
@@ -306,7 +324,7 @@ struct GraphicsApp{
         // Build a basic shader
         mBasicGraphicsPipeline = BuildBasicShader("./pipelines/basic/basic.vert","./pipelines/basic/basic.frag");
         
-        mTerrainMesh = MakeMeshFromHeightmap(generateHeightmap(10,10,0.1));
+        mTerrainMesh = MakeMeshFromHeightmap(generateHeightmap(16,16,5));
         mActiveMesh = mTerrainMesh;
     }
 
@@ -320,10 +338,7 @@ struct GraphicsApp{
         glClearColor(0.0f,0.6f,0.8f,1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH);
-        glEnable(GL_CULL_FACE);
-        // glDepthMask(GL_TRUE);s
-        // glDisable(GL_CULL_FACE);
-        // glCullFace(GL_BACK);
+
 
         // Do opengl drawing
         glUseProgram(mBasicGraphicsPipeline);
@@ -350,6 +365,21 @@ struct GraphicsApp{
 
         SDL_GL_SwapWindow(mWindow);
     }
+
+    //from https://github.com/emeiri/ogldev/blob/master/Terrain1/terrain_demo1.cpp
+    // void InitCamera()
+    // {
+    //     Vector3f pos = Vector3f(100.0f, 220.0f, -400.0f);
+    //     Vector3f target = Vector3f(0.0f, -0.25f, 1.0f);
+    //     Vector3f up = Vector3f(0.0, 1.0f, 0.0f);
+
+    //     float FOV = 45.0f;
+    //     float zNear = 0.1f;
+    //     float zFar = 2000.0f;
+    //     PersProjInfo persProjInfo = { FOV, cast(float) WINDOW_WIDTH, cast(float) WINDOW_HEIGHT, zNear, zFar };
+
+    //     m_pGameCamera = new BasicCamera(persProjInfo, pos, target, up);
+    // }
 
     /// Process 1 frame
     void AdvanceFrame(){
