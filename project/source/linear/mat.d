@@ -423,6 +423,64 @@ struct mat4{
                         this.Row(3).toString;
         return result;
     }
+
+
+
+    void InitPersProjTransform(PersProjInfo p){
+        float ar         = p.Width / p.Height;
+        float zNear      = p.zNear;
+        float zFar       = p.zFar;
+        float zRange     = zNear - zFar;
+        float tanHalfFOV = tan(ToRadians(p.FOV / 2.0f));
+
+        e[0]  = 1.0f / (tanHalfFOV * ar);
+        e[1]  = 0.0f;
+        e[2]  = 0.0f;
+        e[3]  = 0.0f;
+        e[4]  = 0.0f;
+        e[5]  = 1.0f / tanHalfFOV;
+        e[6]  = 0.0f;
+        e[7]  = 0.0f;
+        e[8]  = 0.0f;
+        e[9]  = 0.0f;
+        e[10] = (-zNear -zFar)/zRange;
+        e[11] = 2.0f * zFar * zNear / zRange;
+        e[12] = 0.0f;
+        e[13] = 0.0f;
+        e[14] = 1.0f;
+        e[15] = 0.0f;
+    }
+
+    void InitCameraTransform(vec3 target, vec3 up){
+        vec3 N = target.Normalize();
+        vec3 U = up.Normalize();
+        vec3 V = N.Cross(U);
+        U = V.Cross(N);
+
+        e[0]  = U.x;
+        e[1]  = U.y;
+        e[2]  = U.z;
+        e[3]  = 0.0f;
+        e[4]  = V.x;
+        e[5]  = V.y;
+        e[6]  = V.z;
+        e[7]  = 0.0f;
+        e[8]  = N.x;
+        e[9]  = N.y;
+        e[10] = N.z;
+        e[11] = 0.0f;
+        e[12] = 0.0f;
+        e[13] = 0.0f;
+        e[14] = 0.0f;
+        e[15] = 1.0f;
+    }
+
+    void InitCameraTransform(vec3 pos, vec3 target, vec3 up){
+        mat4 T = MatrixMakeTranslation(vec3(-pos.x, -pos.y, -pos.z));
+        mat4 C = MatrixMakeIdentity();
+        C.InitCameraTransform(target, up);
+        this = C*T;
+    }
 }
 
 /// Helper function that will print two matrices side by side
@@ -623,6 +681,15 @@ mat4 MatrixMakePerspective(float fovy, float aspect_ratio, float zNear, float zF
 		 0,                0,               (fd+nd)/(nd-fd),  (2*fd*nd)/(nd-fd),
 		 0,                0,               -1,                0
 	);
+}
+
+
+struct PersProjInfo{
+    float FOV = 0.0f;
+    float Width = 0.0f;
+    float Height = 0.0f;
+    float zNear = 0.0f;
+    float zFar = 0.0f;
 }
 
 

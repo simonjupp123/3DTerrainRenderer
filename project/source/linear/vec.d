@@ -1,7 +1,7 @@
 /// This module contains several vec data types.
 module vec;
 
-import std.stdio, std.math, std.conv;
+import std.stdio, std.math, std.conv, mat;
 
 /// Vector with 2-dimensions
 struct vec2{
@@ -184,6 +184,11 @@ struct vec3{
 		/// e.g. writeln(vec3(1.0f,1.0f,1.0f));
 		string toString(){
 				return "<"~x.to!string~","~y.to!string~","~z.to!string~">";
+		}
+		
+		void Rotate(float angle, vec3 axis){
+			mat3 rotationMatrix = MatrixMakeRotation(angle, axis);
+			this = rotationMatrix * this;
 		}
 }
 

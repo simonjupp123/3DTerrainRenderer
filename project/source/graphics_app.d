@@ -10,7 +10,7 @@ import std.algorithm;
 
 import obj_parser;
 import heightmap_gen;
-import camera;
+import camera_ogldev;
 import linear;
 
 
@@ -238,7 +238,7 @@ struct GraphicsApp{
     SDL_GLContext mContext;
     SDL_Window* mWindow;
     Mesh mTerrainMesh;
-    Camera camera;
+    // Camera camera;
     
     Mesh mActiveMesh; // Assign to either triangle or bunny depending on key press
     auto mFillState = GL_FILL;
@@ -247,6 +247,8 @@ struct GraphicsApp{
     float mHeightChange = 0;
     int mScreenWidth = 640;
     int mScreenHeight = 480;
+
+    BasicCamera m_camera;
 
     /// Setup OpenGL and any libraries
     this(int width, int height){
@@ -278,7 +280,7 @@ struct GraphicsApp{
         // Check OpenGL version
         GetOpenGLVersionInfo();
 
-        camera = new Camera();
+        InitCamera();
     }
 
     ~this(){
@@ -302,7 +304,7 @@ struct GraphicsApp{
                     writeln("Pressed escape key and now exiting...");
                     mGameIsRunning= false;
                 }
-                else if(event.key.keysym.scancode == SDL_SCANCODE_W){
+                else if(event.key.keysym.scancode == SDL_SCANCODE_TAB){
                     //Toggle wire mode
                     if(mFillState == GL_FILL){
                         mFillState = GL_LINE;
@@ -312,47 +314,61 @@ struct GraphicsApp{
                     }
                     writeln("Toggling Wire Mode");
                 }
-                else if(event.key.keysym.sym == SDLK_DOWN){
-                    camera.MoveBackward();
-                }
-                else if(event.key.keysym.sym == SDLK_UP){
-                    camera.MoveForward();
-                }
-                else if(event.key.keysym.sym == SDLK_LEFT){
-                    camera.MoveLeft();
-                }
-                else if(event.key.keysym.sym == SDLK_RIGHT){
-                    camera.MoveRight();
-                }
-                else if(event.key.keysym.sym == SDLK_LSHIFT){
-                    camera.MoveUp();
-                }
-                else if(event.key.keysym.sym == SDLK_LCTRL){
-                    camera.MoveDown();
-                }
-                writeln("Camera Position: ",camera.mEyePosition);
-                camera.debugCamera();
+                m_camera.OnKeyboard(event.key.keysym.sym);
+                // else if(event.key.keysym.sym == SDLK_DOWN){
+                //     m_camera.MoveBackward();
+                // }
+                // else if(event.key.keysym.sym == SDLK_UP){
+                //     m_camera.MoveForward();
+                // }
+                // else if(event.key.keysym.sym == SDLK_LEFT){
+                //     m_camera.MoveLeft();
+                // }
+                // else if(event.key.keysym.sym == SDLK_RIGHT){
+                //     m_camera.MoveRight();
+                // }
+                // else if(event.key.keysym.sym == SDLK_LSHIFT){
+                //     m_camera.MoveUp();
+                // }
+                // else if(event.key.keysym.sym == SDLK_LCTRL){
+                //     m_camera.MoveDown();
+                // }
+                // writeln("Camera Position: ",camera.mEyePosition);
+                // m_camera.debugCamera();
             
 						
             }
-        }
         int mouseX,mouseY;
         SDL_GetMouseState(&mouseX,&mouseY);
-        camera.MouseLook(mouseX,mouseY);
+        // m_camera.MouseLook(mouseX,mouseY);
+        m_camera.OnMouse(mouseX,mouseY);
+        }
+        //TODO READD MOUSE LOOK
+        
     }
+    void InitCamera(){
+        vec3 pos = vec3(0.0f, 10.0f, 0.0f);
+        vec3 target = vec3(0.0f, 0.0f, 1.0f);
+        vec3 up = vec3(0.0f, 1.0f, 0.0f);
+
+        float FOV = 45.0f;
+        float zNear = 0.1f;
+        float zFar = 1000.0f;
+        PersProjInfo persProjInfo = { FOV, cast(float) mScreenWidth, cast(float) mScreenHeight, zNear, zFar };
+
+        m_camera = new BasicCamera(persProjInfo, pos, target, up);
+    }
+
 
     void SetupScene(){
         // Build a basic shader
         mBasicGraphicsPipeline = BuildBasicShader("./pipelines/basic/basic.vert","./pipelines/basic/basic.frag");
         // mat4 projectionMatrix = camera.getProjectionMatrix(45.0f, mScreenWidth / float(mScreenHeight), 0.1f, 100.0f);
-        // GLuint viewLoc = glGetUniformLocation(mBasicGraphicsPipeline, "view");
-        // GLuint projLoc = glGetUniformLocation(mBasicGraphicsPipeline, "projection");
+        GLuint vp = glGetUniformLocation(mBasicGraphicsPipeline, "view");
 
-        // glUniformMatrix4fv(viewLoc, 1, GL_FALSE, camera.getViewMatrix().DataPtr());
-        // glUniformMatrix4fv(projLoc, 1, GL_FALSE, projectionMatrix.DataPtr());
 
         
-        mTerrainMesh = MakeMeshFromHeightmap(generateHeightmap(256,256,5));
+        mTerrainMesh = MakeMeshFromHeightmap(generateHeightmap(512,512,1));
         mActiveMesh = mTerrainMesh;
     }
 
@@ -362,28 +378,22 @@ struct GraphicsApp{
 
     void Render(){
         // Clear the renderer each time we render
-         glViewport(0,0,mScreenWidth, mScreenHeight);
+        glViewport(0,0,mScreenWidth, mScreenHeight);
         // Clear the renderer each time we render
-        glClearColor(0.0f,0.6f,0.8f,1.0f);
+        glClearColor(0.0f,0.0f,0.0f,0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        // glEnable(GL_DEPTH);
+        glEnable(GL_DEPTH);
         glEnable(GL_DEPTH_TEST); 
-        glEnable(GL_CULL_FACE);
+        // glEnable(GL_CULL_FACE);
 
 
         // Do opengl drawing
         glUseProgram(mBasicGraphicsPipeline);
 
-        GLuint viewLoc = glGetUniformLocation(mBasicGraphicsPipeline, "uView");
-        GLuint projLoc = glGetUniformLocation(mBasicGraphicsPipeline, "uProjection");
-
-        // Get matrices from Camera
-        mat4 viewMatrix = camera.getViewMatrix();
-        mat4 projectionMatrix = camera.getProjectionMatrix(90.0f, 640.0f / 480.0f, 0.1f, 100.0f);
+        GLuint viewProj = glGetUniformLocation(mBasicGraphicsPipeline, "gVP");
 
         // Send matrices to shader
-        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, viewMatrix.DataPtr());
-        glUniformMatrix4fv(projLoc, 1, GL_FALSE, projectionMatrix.DataPtr());
+        glUniformMatrix4fv(viewProj, 1, GL_TRUE, m_camera.GetViewProjMatrix().DataPtr());
 
         glBindVertexArray(mActiveMesh.mVAO);
         glBindBuffer(GL_ARRAY_BUFFER, mActiveMesh.mVBO); 
@@ -399,20 +409,7 @@ struct GraphicsApp{
         SDL_GL_SwapWindow(mWindow);
     }
 
-    //from https://github.com/emeiri/ogldev/blob/master/Terrain1/terrain_demo1.cpp
-    // void InitCamera()
-    // {
-    //     Vector3f pos = Vector3f(100.0f, 220.0f, -400.0f);
-    //     Vector3f target = Vector3f(0.0f, -0.25f, 1.0f);
-    //     Vector3f up = Vector3f(0.0, 1.0f, 0.0f);
-
-    //     float FOV = 45.0f;
-    //     float zNear = 0.1f;
-    //     float zFar = 2000.0f;
-    //     PersProjInfo persProjInfo = { FOV, cast(float) WINDOW_WIDTH, cast(float) WINDOW_HEIGHT, zNear, zFar };
-
-    //     m_pGameCamera = new BasicCamera(persProjInfo, pos, target, up);
-    // }
+   
 
     /// Process 1 frame
     void AdvanceFrame(){
@@ -426,7 +423,7 @@ struct GraphicsApp{
         // Setup the graphics scene
         SetupScene();
         // Run the graphics application loop
-        SDL_WarpMouseInWindow(mWindow,640/2,320/2);
+        // SDL_WarpMouseInWindow(mWindow,640/2,320/2);
 
         while(mGameIsRunning){
             AdvanceFrame();
