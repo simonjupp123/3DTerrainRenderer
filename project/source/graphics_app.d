@@ -125,26 +125,31 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap){
     for(int i = 0; i < heightmap.width; i++){
         for(int j = 0; j < heightmap.height; j++){
             //Vertex data
-            mVertexData ~= (i - heightmap.width/2) * .1;
-            mVertexData ~= (j - heightmap.height/2) * .1;
+            mVertexData ~= (i - heightmap.width/2) * 1;
             mVertexData ~= heightmap.y_vals[i][j];
+            mVertexData ~= (j - heightmap.height/2) * 1;
+            
             
             //Normal data
             //random number between 0 and 1
 
             import std.random;
 
-            mVertexData ~= heightmap.y_vals[i][j];
-            mVertexData ~= heightmap.y_vals[i][j];
-            mVertexData ~= heightmap.y_vals[i][j];
-            // mVertexData ~= uniform(0.0,1.0);
+            // mVertexData ~= heightmap.y_vals[i][j];
+            // mVertexData ~= heightmap.y_vals[i][j];
+            // mVertexData ~= heightmap.y_vals[i][j];
+            mVertexData ~= uniform(0.0,1.0);
+            mVertexData ~= uniform(0.0,1.0);
+            mVertexData ~= uniform(0.0,1.0);
         }
     }
-    // for(int i = 0; i < heightmap.width; i++){
-    //     for(int j = 0; j < heightmap.height; j++){
-    //         write(mVertexData[i*heightmap.height+j]);
-    //         write(" "); 
-    //     }
+
+
+    //debug func
+    // for(int i = 0; i < mVertexData.length; i += 6){
+    //     write(mVertexData[i], " ");
+    //     write(mVertexData[i+1], " ");
+    //     write(mVertexData[i+2], " ");
     //     writeln();
     // }
 
@@ -319,7 +324,14 @@ struct GraphicsApp{
                 else if(event.key.keysym.sym == SDLK_RIGHT){
                     camera.MoveRight();
                 }
+                else if(event.key.keysym.sym == SDLK_LSHIFT){
+                    camera.MoveUp();
+                }
+                else if(event.key.keysym.sym == SDLK_LCTRL){
+                    camera.MoveDown();
+                }
                 writeln("Camera Position: ",camera.mEyePosition);
+                camera.debugCamera();
             
 						
             }
@@ -340,7 +352,7 @@ struct GraphicsApp{
         // glUniformMatrix4fv(projLoc, 1, GL_FALSE, projectionMatrix.DataPtr());
 
         
-        mTerrainMesh = MakeMeshFromHeightmap(generateHeightmap(16,16,5));
+        mTerrainMesh = MakeMeshFromHeightmap(generateHeightmap(256,256,5));
         mActiveMesh = mTerrainMesh;
     }
 
@@ -350,10 +362,13 @@ struct GraphicsApp{
 
     void Render(){
         // Clear the renderer each time we render
-        glViewport(0,0,mScreenWidth,mScreenHeight);
+         glViewport(0,0,mScreenWidth, mScreenHeight);
+        // Clear the renderer each time we render
         glClearColor(0.0f,0.6f,0.8f,1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glEnable(GL_DEPTH);
+        // glEnable(GL_DEPTH);
+        glEnable(GL_DEPTH_TEST); 
+        glEnable(GL_CULL_FACE);
 
 
         // Do opengl drawing

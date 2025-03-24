@@ -33,7 +33,7 @@ HeightMap generateHeightmap(int width, int height, float scale) {
             heightmap.y_vals[x][z] = perlinNoise(nx, nz)* .5;
         }
     }
-    debugHeightMap(heightmap);
+    // debugHeightMap(heightmap);
     return heightmap;
 }
 

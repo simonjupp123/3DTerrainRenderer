@@ -68,17 +68,17 @@ class Camera{
 
         // Setup our perspective projection matrix
         // NOTE: Assumption made here is our window is always 640/480 or the similar aspect ratio.
-        mProjectionMatrix = MatrixMakePerspective(90.0f.ToRadians,480.0f/640.0f, 0.1f, 100.0f);
+        mProjectionMatrix = MatrixMakePerspective(90.0f.ToRadians,480.0f/640.0f, 0.1f, 1000.0f);
 
         /// Initial Camera setup
-        mEyePosition    = vec3(0.0f, 10.0f, 0.0f);
+        mEyePosition    = vec3(0.0f, 0.0f, 0.0f);
         // Eye position
         // Forward vector matching the positive z-axis
-        mForwardVector  = vec3(0.0f, -10.0f, 0.0f);
+        mForwardVector  = vec3(0.0f, 0.0f, 1.0f);
         // Where up is in the world initially
-        mUpVector       = vec3(1.0f,1.0f,0.0f);
+        mUpVector       = vec3(0.0f,1.0f,0.0f);
         // Where right is initially
-        mRightVector    = vec3(0.0f, 0.0f, 1.0f);
+        mRightVector    = vec3(1.0f, 0.0f, 0.0f);
 
     }
 
@@ -86,42 +86,30 @@ class Camera{
     void SetCameraPosition(vec3 v){
         UpdateViewMatrix();
         mEyePosition = v;
+        
+        
     }
     /// Position the eye of the camera in the world
     void SetCameraPosition(float x, float y, float z){
         UpdateViewMatrix();
         mEyePosition = vec3(x,y,z);
+        
+        
     }
 
-    /// Builds a matrix for where the matrix is looking
-    /// given the following parameters
+
     mat4 LookAt(vec3 eye, vec3 direction, vec3 up){
-        // TODO
-        //calc right vec using cross prod of up and dir:
-        direction = Normalize(direction);
-        up = Normalize(up);
-        vec3 right = Normalize(Cross(up, direction));
-
-        // mUpVector = Normalize(Cross(direction, mRightVector));
-        mat4 lookAt = MatrixMakeIdentity();
-        lookAt[0] = vec4(right.x, right.y, right.z, 0.0f);
-        lookAt[1] = vec4(up.x, up.y, up.z, 0.0f);
-        lookAt[2] = vec4(direction.x, direction.y, direction.z, 0.0f);
-        lookAt = MatrixTranspose(lookAt);
         
+        mat4 translation = MatrixMakeTranslation(-mEyePosition);
+        
+        mat4 look = mat4(mRightVector.x,    mRightVector.y,     mRightVector.z  , 0.0f,
+                         mUpVector.x,       mUpVector.y,        mUpVector.z     , 0.0f,
+                         mForwardVector.x,  mForwardVector.y,   mForwardVector.z, 0.0f,
+                         0.0f, 0.0f, 0.0f, 1.0f);
 
-        mat4 pos = MatrixMakeIdentity();
-        pos[3] = vec4(-eye.x, -eye.y, -eye.z, 1.0f);
-        // Note: I would recommend handling this in 2 parts
-        //       1. First try handling translation (Remember camera moves opposite of world)
-        //       2. Then add the 'look' vector that handles rotation.
-        // 
-        // Consider which matrix you need to transpose in order to 'invert'
-        // the operation.
-        mat4 result;
-        result = lookAt * pos;
+				look = look.MatrixTranspose(); //pretty sure you dont want to transpose this but not sure
 
-        return result; 
+        return (look * translation); 
     }
 
     /// Sets the view matrix and also retrieves it
@@ -135,78 +123,105 @@ class Camera{
 
     /// Mouse look function
     void MouseLook(int mouseX, int mouseY){
-        // https://learnopengl.com/Getting-started/Camera
-        // if (firstMouse)
-        // {
-        //     lastX = mouseX;
-        //     lastY = mouseY;
-        //     firstMouse = false;
-        // }
-        // float xoffset = mouseX - lastX;
-        // float yoffset = lastY - mouseY; 
-        // lastX = mouseX;
-        // lastY = mouseY;
+       
+        UpdateViewMatrix();
+        static bool firstMouse = true;
+        static lastX = 0;
+        static lastY = 0;
+        if(firstMouse){
+            firstMouse = false;
+            lastX = mouseX;
+            lastY = mouseY;
+        }
 
-        // const float sensitivity = 0.35f;
-        // xoffset *= sensitivity;
-        // yoffset *= sensitivity;
+        float deltaX = (mouseX-lastX)*.01;
+        float deltaY = (mouseY-lastY)*.01;
 
-        // yaw   += xoffset;
-        // pitch += yoffset; 
 
-        // if(pitch > 89.0f)
-        //     pitch =  89.0f;
-        // if(pitch < -89.0f)
-        //     pitch = -89.0f;
 
-        // vec3 dir;
-        // dir.x = cos(yaw.ToRadians) * cos(pitch.ToRadians);
-        // dir.y = sin(pitch.ToRadians);
-        // dir.z = sin(yaw.ToRadians) * cos(pitch.ToRadians);
-        
-        // mForwardVector = dir;
+        mForwardVector = mForwardVector.Normalize();
+        mForwardVector = mat3(MatrixMakeYRotation(deltaX)) * mForwardVector;
+		mForwardVector = mForwardVector.Normalize();
 
-        // mRightVector = Normalize(Cross(mForwardVector, mUpVector));
+		mRightVector = Cross(mForwardVector,mUpVector);
+		mRightVector = mRightVector.Normalize();
 
-        // UpdateViewMatrix();
-        // TODO 
+        lastX = mouseX;
+        lastY = mouseY;
 
     }
 
     void MoveForward(){
-        vec3 change = mForwardVector * 1.0f;
-        mEyePosition = mEyePosition - change;
         UpdateViewMatrix();
         // TODO 
+		vec3 direction = mForwardVector;
+		direction = direction * 1.0f;		
+
+        SetCameraPosition(mEyePosition.x - direction.x, 
+														mEyePosition.y - direction.y,
+														mEyePosition.z - direction.z);
     }
 
     void MoveBackward(){
-        vec3 change = mForwardVector * 1.0f;
-        mEyePosition = mEyePosition + change;
         UpdateViewMatrix();
         // TODO 
+		vec3 direction = mForwardVector;
+		direction = direction * 1.0f;		
+
+        SetCameraPosition(mEyePosition.x + direction.x, 
+												  mEyePosition.y + direction.y,
+												  mEyePosition.z + direction.z);
     }
 
     void MoveLeft(){
-        vec3 change = mRightVector * 1.0f;
-        mEyePosition = mEyePosition + change;
         UpdateViewMatrix();
         // TODO 
+		
+        SetCameraPosition(mEyePosition.x - mRightVector.x, 
+										      mEyePosition.y - mRightVector.y,
+												  mEyePosition.z - mRightVector.z);
+
     }
 
     void MoveRight(){
-        vec3 change = mRightVector * 1.0f;
-        mEyePosition = mEyePosition - change;
         UpdateViewMatrix();
         // TODO 
+        SetCameraPosition(mEyePosition.x + mRightVector.x, 
+					      					mEyePosition.y + mRightVector.y,
+						  						mEyePosition.z + mRightVector.z);
     }
+
+    void MoveUp(){
+        UpdateViewMatrix();
+        // TODO 
+        SetCameraPosition(mEyePosition.x, 
+					     						 mEyePosition.y +1.0f,
+						  						 mEyePosition.z);
+    }
+
+    void MoveDown(){
+        UpdateViewMatrix();
+        // TODO 
+        SetCameraPosition(mEyePosition.x, 
+					     						 mEyePosition.y - 1.0f,
+						  						 mEyePosition.z);
+    }
+
+
 
     mat4 getViewMatrix(){
         return mViewMatrix;
     }
 
     mat4 getProjectionMatrix(float fov, float aspectRatio, float near, float far) {
-        return MatrixMakePerspective(fov, aspectRatio, near, far);
+        return mProjectionMatrix;
+    }
+
+    void debugCamera(){
+        writeln("Camera Position: ", mEyePosition);
+        writeln("Camera Forward: ", mForwardVector);
+        writeln("Camera Right: ", mRightVector);
+        writeln("Camera Up: ", mUpVector);
     }
 }
 
