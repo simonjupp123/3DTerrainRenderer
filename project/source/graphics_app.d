@@ -124,10 +124,12 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap){
     GLfloat[] mVertexData= [];
     for(int i = 0; i < heightmap.width; i++){
         for(int j = 0; j < heightmap.height; j++){
-            //Vertex data
+            //Vertex data TODO CHECK IF X,Y,Z is correct 
             mVertexData ~= (i - heightmap.width/2) * 1;
             mVertexData ~= heightmap.y_vals[i][j];
             mVertexData ~= (j - heightmap.height/2) * 1;
+            
+            
             
             
             //Normal data
@@ -135,12 +137,12 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap){
 
             import std.random;
 
-            // mVertexData ~= heightmap.y_vals[i][j];
-            // mVertexData ~= heightmap.y_vals[i][j];
-            // mVertexData ~= heightmap.y_vals[i][j];
-            mVertexData ~= uniform(0.0,1.0);
-            mVertexData ~= uniform(0.0,1.0);
-            mVertexData ~= uniform(0.0,1.0);
+            mVertexData ~= heightmap.y_vals[i][j];
+            mVertexData ~= heightmap.y_vals[i][j];
+            mVertexData ~= heightmap.y_vals[i][j];
+            // mVertexData ~= uniform(0.0,1.0);
+            // mVertexData ~= uniform(0.0,1.0);
+            // mVertexData ~= uniform(0.0,1.0);
         }
     }
 
@@ -347,7 +349,7 @@ struct GraphicsApp{
         
     }
     void InitCamera(){
-        vec3 pos = vec3(0.0f, 10.0f, 0.0f);
+        vec3 pos = vec3(256.0f, 50.0f, 256.0f);
         vec3 target = vec3(0.0f, 0.0f, 1.0f);
         vec3 up = vec3(0.0f, 1.0f, 0.0f);
 
@@ -380,7 +382,7 @@ struct GraphicsApp{
         // Clear the renderer each time we render
         glViewport(0,0,mScreenWidth, mScreenHeight);
         // Clear the renderer each time we render
-        glClearColor(0.0f,0.0f,0.0f,0.0f);
+        glClearColor(0.0f,0.0f,255.0f,0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH);
         glEnable(GL_DEPTH_TEST); 
@@ -393,6 +395,7 @@ struct GraphicsApp{
         GLuint viewProj = glGetUniformLocation(mBasicGraphicsPipeline, "gVP");
 
         // Send matrices to shader
+        // TRANSPOSING WAS THE MAIN ISSUE
         glUniformMatrix4fv(viewProj, 1, GL_TRUE, m_camera.GetViewProjMatrix().DataPtr());
 
         glBindVertexArray(mActiveMesh.mVAO);

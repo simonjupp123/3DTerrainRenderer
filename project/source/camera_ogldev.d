@@ -231,18 +231,18 @@ class BasicCamera
         //     CameraChangedPos = true;
         //     break;
 
-        // case GLFW_KEY_KP_ADD:
-        //     m_speed += 0.1f;
-        //     printf("Speed changed to %f\n", m_speed);
-        //     break;
+        case SDLK_EQUALS:
+            m_speed += 0.5f;
+            printf("Speed changed to %f\n", m_speed);
+            break;
 
-        // case GLFW_KEY_KP_SUBTRACT:
-        //     m_speed -= 0.1f;
-        //     if (m_speed < 0.1f) {
-        //         m_speed = 0.1f;
-        //     }
-        //     printf("Speed changed to %f\n", m_speed);
-        //     break;
+        case SDLK_MINUS:
+            m_speed -= 0.5f;
+            if (m_speed < 0.1f) {
+                m_speed = 0.1f;
+            }
+            printf("Speed changed to %f\n", m_speed);
+            break;
 
         case SDLK_c:
             printf("Camera pos: "); writeln(m_pos); printf("\n");
@@ -269,8 +269,8 @@ class BasicCamera
         m_mousePos.x = x;
         m_mousePos.y = y;
 
-        m_AngleH += cast (float)DeltaX / 20.0f;
-        m_AngleV += cast (float)DeltaY / 20.0f;
+        m_AngleH += cast (float)DeltaX / 100.0f;
+        m_AngleV += cast (float)DeltaY / 100.0f;
 
         if (x <= MARGIN) {
             m_OnLeftEdge = true;
