@@ -28,6 +28,7 @@ struct HeightMap
 
 HeightMap generateHeightmap(int width, int height, float scale)
 {
+    const int GRID_SIZE = 100;
     //scale is used to control how spread out our vertices
     HeightMap heightmap = HeightMap(width, height);
     foreach (x; 0 .. width)
@@ -37,13 +38,13 @@ HeightMap generateHeightmap(int width, int height, float scale)
             float nx = x * scale;
             float nz = z * scale;
             float val = 0.0f;
-            for (int i = 0; i < 20; i++)
+            for (int i = 0; i < 10; i++)
             {
                 //this will add multiple layers of noise to create a more complex terrain
                 //each layer will have a different scale and amplitude
                 float frequency = pow(2.0f, cast(float) i);
-                float amplitude = pow(0.5f, cast(float) i);
-                val += perlinNoise(nx * frequency / 50, nz * frequency / 50) * amplitude;
+                float amplitude = 20 * pow(0.5f, cast(float) i);
+                val += perlinNoise(nx * frequency / GRID_SIZE, nz * frequency / GRID_SIZE) * amplitude;
             }
             heightmap.y_vals[x][z] = val * 1.1; //height scalin
             // writeln(perlinNoise(nx, nz));

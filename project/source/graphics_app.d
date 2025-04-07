@@ -139,12 +139,23 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap)
 
             import std.random;
 
-            mVertexData ~= heightmap.y_vals[i][j];
-            mVertexData ~= heightmap.y_vals[i][j];
-            mVertexData ~= heightmap.y_vals[i][j];
-            // mVertexData ~= uniform(0.0,1.0);
-            // mVertexData ~= uniform(0.0,1.0);
-            // mVertexData ~= uniform(0.0,1.0);
+            //lakes sorta
+            if (heightmap.y_vals[i][j] < -5)
+            {
+                mVertexData ~= 0;
+                mVertexData ~= 100;
+                mVertexData ~= 255;
+            }
+            else
+            {
+                mVertexData ~= (heightmap.y_vals[i][j] + 5) / 15;
+                mVertexData ~= (heightmap.y_vals[i][j] + 5) / 15;
+                mVertexData ~= (heightmap.y_vals[i][j] + 5) / 15;
+            }
+
+            // mVertexData ~= uniform(0.0, 1.0);
+            // mVertexData ~= uniform(0.0, 1.0);
+            // mVertexData ~= uniform(0.0, 1.0);
         }
     }
 
@@ -248,8 +259,8 @@ struct GraphicsApp
 
     GLuint mBasicGraphicsPipeline;
     float mHeightChange = 0;
-    int mScreenWidth = 640;
-    int mScreenHeight = 480;
+    int mScreenWidth;
+    int mScreenHeight;
 
     BasicCamera m_camera;
 
@@ -384,7 +395,7 @@ struct GraphicsApp
         GLuint vp = glGetUniformLocation(mBasicGraphicsPipeline, "view");
         glUniformMatrix4fv(vp, 1, GL_TRUE, m_camera.GetViewProjMatrix().DataPtr());
 
-        mTerrainMesh = MakeMeshFromHeightmap(generateHeightmap(512, 512, 1));
+        mTerrainMesh = MakeMeshFromHeightmap(generateHeightmap(512, 512, 2));
         mActiveMesh = mTerrainMesh;
     }
 
@@ -439,7 +450,7 @@ struct GraphicsApp
         // Setup the graphics scene
         SetupScene();
         // Run the graphics application loop
-        // SDL_WarpMouseInWindow(mWindow,640/2,320/2);
+        SDL_WarpMouseInWindow(mWindow, mScreenWidth / 2, mScreenHeight / 2);
 
         while (mGameIsRunning)
         {
