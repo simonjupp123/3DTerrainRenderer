@@ -132,11 +132,12 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap)
         for (int j = 0; j < heightmap.height; j++)
         {
             //Vertex data TODO CHECK IF X,Y,Z is correct 
-            mVertexData ~= (i - heightmap.width / 2) * 1;
+            // mVertexData ~= (i - heightmap.width / 2) * 1;
+            mVertexData ~= i;
             mVertexData ~= heightmap.y_vals[i][j];
             // mVertexData ~= 10;
-            mVertexData ~= (j - heightmap.height / 2) * 1;
-
+            // mVertexData ~= (j - heightmap.height / 2) * 1;
+            mVertexData ~= j;
             //Normal data
             //random number between 0 and 1
 

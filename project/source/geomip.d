@@ -8,6 +8,7 @@ import bindbc.sdl;
 import bindbc.opengl;
 
 import linear;
+import lod_manager;
 
 const m_patchsize = 33; //TODO
 const m_width = 513;
@@ -31,6 +32,8 @@ struct LodInfo
     SingleLodInfo[2][2][2][2] info;
 };
 
+LodManager m_lodManager;
+
 GLuint[] GeomipInitIndices(int width, int height, int patch_size)
 {
     writeln(m_Xpatches);
@@ -38,6 +41,8 @@ GLuint[] GeomipInitIndices(int width, int height, int patch_size)
     m_lodInfo.length = MAX_LOD;
     GLuint[] indices;
     int index = 0;
+    m_lodManager = new LodManager();
+    m_lodManager.InitLodManager(m_patchsize, m_Xpatches, m_Zpatches);
 
     // const temp_resize = 400; //TODO FIND THE ACTUAL SIZE OF THE BUFFER AND RESIZE 
     //determine number of indices first to resize buffer
@@ -178,18 +183,23 @@ int CreateTriangle(int ind, GLuint[] indices, int ind1, int ind2, int ind3)
 void RenderGeo(vec3 camera_pos)
 {
     //iterate over each patch and render
-    // glDrawElementsBaseVertex(GL_POINTS, m_lodInfo[0].info[0][0][0][0].count, GL_UNSIGNED_INT, cast(
-    //         void*) 0, 0);
+
+    m_lodManager.update(camera_pos);
     for (int patch_z = 0; patch_z < m_Zpatches; patch_z++)
     {
         for (int patch_x = 0; patch_x < m_Xpatches; patch_x++)
         {
             // Todo. use camera to get actual l,r,t,b,core for current patch
-            int l = 0;
-            int r = 0;
-            int t = 0;
-            int b = 0;
-            int core = 0;
+            PatchLodInfo pInfo = m_lodManager.getPatchInfo(patch_x, patch_z);
+            int l = pInfo.left;
+            int r = pInfo.right;
+            int t = pInfo.top;
+            int b = pInfo.bottom;
+            int core = pInfo.core;
+            if (core != 0)
+            {
+                writeln(core);
+            }
             size_t baseInd = uint.sizeof * m_lodInfo[core].info[l][r][t][b].start;
             int baseVert = (patch_z * (m_patchsize - 1)) * m_width + (patch_x * (m_patchsize - 1));
             glDrawElementsBaseVertex(GL_TRIANGLES, m_lodInfo[core].info[l][r][t][b].count, GL_UNSIGNED_INT, cast(
