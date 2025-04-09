@@ -191,15 +191,16 @@ void RenderGeo(vec3 camera_pos)
         {
             // Todo. use camera to get actual l,r,t,b,core for current patch
             PatchLodInfo pInfo = m_lodManager.getPatchInfo(patch_x, patch_z);
+            // writeln(pInfo);
             int l = pInfo.left;
             int r = pInfo.right;
             int t = pInfo.top;
             int b = pInfo.bottom;
             int core = pInfo.core;
-            if (core != 0)
-            {
-                writeln(core);
-            }
+            // if (core != 0)
+            // {
+            //     writeln(core);
+            // }
             size_t baseInd = uint.sizeof * m_lodInfo[core].info[l][r][t][b].start;
             int baseVert = (patch_z * (m_patchsize - 1)) * m_width + (patch_x * (m_patchsize - 1));
             glDrawElementsBaseVertex(GL_TRIANGLES, m_lodInfo[core].info[l][r][t][b].count, GL_UNSIGNED_INT, cast(

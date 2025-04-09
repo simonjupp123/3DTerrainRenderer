@@ -62,24 +62,24 @@ class LodManager
                 //Todo fix this:
                 int coreLod = 4;
                 // writeln(dist);
-                if (dist < 50)
+                if (dist < 500)
                 {
                     coreLod = 3;
                 }
-                else if (dist < 30)
+                else if (dist < 350)
                 {
                     coreLod = 2;
                 }
-                else if (dist < 20)
+                else if (dist < 200)
                 {
                     coreLod = 1;
                 }
-                else if (dist < 10)
+                else if (dist < 100)
                 {
                     coreLod = 0;
                 }
-                PatchLodInfo pInfo = m_map[(patch_z * m_num_patches_x) + patch_x];
-                pInfo.core = coreLod;
+                m_map[(patch_z * m_num_patches_x) + patch_x].core = coreLod;
+                // pInfo.core = coreLod;
 
             }
         }
