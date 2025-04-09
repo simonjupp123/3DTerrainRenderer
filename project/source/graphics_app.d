@@ -12,6 +12,8 @@ import obj_parser;
 import heightmap_gen;
 import camera_ogldev;
 import linear;
+import basic_mesh;
+import geomip;
 
 /// Create a basic shader
 /// The result is a 'GLuint' representing the compiled 'program object' or otherwise 'graphics pipeline'
@@ -132,6 +134,7 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap)
             //Vertex data TODO CHECK IF X,Y,Z is correct 
             mVertexData ~= (i - heightmap.width / 2) * 1;
             mVertexData ~= heightmap.y_vals[i][j];
+            // mVertexData ~= 10;
             mVertexData ~= (j - heightmap.height / 2) * 1;
 
             //Normal data
@@ -191,8 +194,15 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap)
     ___________
    #0         #m 
     */
-    GLuint[] mIndices = InitIndices(heightmap.width, heightmap.height);
-    m.mNumIndices = cast(int) mIndices.length;
+
+    //initializing for basic mesh
+    // GLuint[] mIndices = InitIndices(heightmap.width, heightmap.height);
+    //m.mNumIndices = cast(int) mIndices.length;
+
+    //initializion for fan mesh
+
+    int patch_size = 3;
+    GLuint[] mIndices = GeomipInitIndices(heightmap.width, heightmap.height, patch_size);
 
     // Vertex Arrays Object (VAO) Setup
     glGenVertexArrays(1, &m.mVAO);
@@ -224,26 +234,6 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap)
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
     return m;
-}
-
-GLuint[] InitIndices(int width, int height)
-{
-    GLuint[] indices;
-    for (int i = 0; i < width - 1; i++)
-    {
-        for (int j = 0; j < height - 1; j++)
-        {
-            //Triangle 1
-            indices ~= i * height + j; //bottom left
-            indices ~= i * height + j + 1; //bottom right
-            indices ~= (i + 1) * height + j + 1; //top right
-            //Triangle 2
-            indices ~= i * height + j; //bottom left
-            indices ~= (i + 1) * height + j + 1; //top right
-            indices ~= (i + 1) * height + j; //top left
-        }
-    }
-    return indices;
 }
 
 struct GraphicsApp
@@ -395,7 +385,7 @@ struct GraphicsApp
         GLuint vp = glGetUniformLocation(mBasicGraphicsPipeline, "view");
         glUniformMatrix4fv(vp, 1, GL_TRUE, m_camera.GetViewProjMatrix().DataPtr());
 
-        mTerrainMesh = MakeMeshFromHeightmap(generateHeightmap(512, 512, 2));
+        mTerrainMesh = MakeMeshFromHeightmap(generateHeightmap(513, 513, 2));
         mActiveMesh = mTerrainMesh;
     }
 
@@ -418,19 +408,22 @@ struct GraphicsApp
         // Do opengl drawing
         glUseProgram(mBasicGraphicsPipeline);
 
+        //faster to do viewProj mult on cpu instead of n times on GPU for each vertex
         GLuint viewProj = glGetUniformLocation(mBasicGraphicsPipeline, "gVP");
 
         // Send matrices to shader
         // TRANSPOSING WAS THE MAIN ISSUE
         glUniformMatrix4fv(viewProj, 1, GL_TRUE, m_camera.GetViewProjMatrix().DataPtr());
 
+        //on LOD change, the following will also change internally, ibo and mNumindices --not actually changing anything about the VBO
         glBindVertexArray(mActiveMesh.mVAO);
         glBindBuffer(GL_ARRAY_BUFFER, mActiveMesh.mVBO);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mActiveMesh.mIBO);
 
         glPolygonMode(GL_FRONT_AND_BACK, mFillState); //https://docs.gl/gl4/glPolygonMode
 
-        glDrawElements(GL_TRIANGLES, mActiveMesh.mNumIndices, GL_UNSIGNED_INT, null);
+        // glDrawElements(GL_TRIANGLES, mActiveMesh.mNumIndices, GL_UNSIGNED_INT, null);
+        RenderGeo(m_camera.m_pos); // TODO should make a call to geomip
         // glBindVertexArray(0);
 
         SDL_GL_SwapWindow(mWindow);
