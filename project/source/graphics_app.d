@@ -143,19 +143,19 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap)
 
             import std.random;
 
-            //lakes sorta
-            if (heightmap.y_vals[i][j] < -5)
-            {
-                mVertexData ~= 0;
-                mVertexData ~= 100;
-                mVertexData ~= 255;
-            }
-            else
-            {
+            // //lakes sorta
+            // if (heightmap.y_vals[i][j] < -5)
+            // {
+            //     mVertexData ~= 0;
+            //     mVertexData ~= 100;
+            //     mVertexData ~= 255;
+            // }
+            // else
+            // {
                 mVertexData ~= (heightmap.y_vals[i][j] + 5) / 15;
                 mVertexData ~= (heightmap.y_vals[i][j] + 5) / 15;
                 mVertexData ~= (heightmap.y_vals[i][j] + 5) / 15;
-            }
+            // }
 
             // mVertexData ~= uniform(0.0, 1.0);
             // mVertexData ~= uniform(0.0, 1.0);

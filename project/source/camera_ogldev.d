@@ -160,6 +160,7 @@ class BasicCamera
 
     bool OnKeyboard(int Key)
     {
+        const float mouse_change = 0.5f;
         bool CameraChangedPos = false;
 
         switch (Key)
@@ -196,22 +197,22 @@ class BasicCamera
             break;
 
         case SDLK_UP:
-            m_AngleV = m_AngleV + m_speed;
+            m_AngleV = m_AngleV + mouse_change;
             Update();
             break;
 
         case SDLK_DOWN:
-            m_AngleV = m_AngleV - m_speed;
+            m_AngleV = m_AngleV - mouse_change;
             Update();
             break;
 
         case SDLK_LEFT:
-            m_AngleH = m_AngleH - m_speed;
+            m_AngleH = m_AngleH - mouse_change;
             Update();
             break;
 
         case SDLK_RIGHT:
-            m_AngleH = m_AngleH + m_speed;
+            m_AngleH = m_AngleH + mouse_change;
             Update();
             break;
 
