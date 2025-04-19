@@ -17,6 +17,7 @@ import geomip;
 import pipeline;
 import materials;
 import uniform;
+import vertex_info;
 
 /// Create a basic shader
 /// The result is a 'GLuint' representing the compiled 'program object' or otherwise 'graphics pipeline'
@@ -120,11 +121,66 @@ struct Mesh
     IMaterial mMaterial;
 }
 
-struct VertexData
-{
-    vec3 vertices;
-    vec3 normals;
-    vec2 texCoords;
+// struct VertexData
+// {
+//     vec3 vertices;
+//     vec3 normals;
+//     vec2 texCoords;
+// }
+
+void PopulateVBO(ref GLfloat[] mVertexData, VertexData[] vertexDataArray)
+{ // Populate the VBO with vertex data
+
+    foreach (vertex; vertexDataArray)
+    {
+        // Add vertex position
+        mVertexData ~= vertex.vertices.x;
+        mVertexData ~= vertex.vertices.y;
+        mVertexData ~= vertex.vertices.z;
+
+        // Add texture coordinates
+        mVertexData ~= vertex.texCoords.x;
+        mVertexData ~= vertex.texCoords.y;
+
+        mVertexData ~= vertex.normals.x;
+        mVertexData ~= vertex.normals.y;
+        mVertexData ~= vertex.normals.z;
+    }
+}
+
+void CalculateNormals(ref VertexData[] vertexDataArray, GLuint[] indices)
+{ // Calculate normals for each vertex based on the indices
+
+    for (size_t i = 0; i < indices.length; i += 3)
+    {
+        // Get the indices of the triangle vertices
+        GLuint index1 = indices[i];
+        GLuint index2 = indices[i + 1];
+        GLuint index3 = indices[i + 2];
+
+        // Get the vertices of the triangle
+        vec3 v1 = vertexDataArray[index1].vertices;
+        vec3 v2 = vertexDataArray[index2].vertices;
+        vec3 v3 = vertexDataArray[index3].vertices;
+
+        // Calculate the normal using cross product
+        vec3 edge1 = v2 - v1;
+        vec3 edge2 = v3 - v1;
+
+        vec3 normal = Normalize(Cross(edge1, edge2));
+
+        // Add the normal to each vertex of the triangle
+        vertexDataArray[index1].normals = vertexDataArray[index1].normals + normal;
+        vertexDataArray[index2].normals = vertexDataArray[index2].normals + normal;
+        vertexDataArray[index3].normals = vertexDataArray[index3].normals + normal;
+    }
+
+    // Normalize the normals for each vertex
+    foreach (ref vertex; vertexDataArray)
+    {
+        // writeln(Normalize(vertex.normals));
+        vertex.normals = Normalize(vertex.normals);
+    }
 }
 
 //Function to create our quadmap from our heightmap generator
@@ -134,36 +190,40 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap)
 
     // Initialize VBO and IBO
 
-    //example data:[0,0,0 // the vertex data
-    //              1,1,1 // the color data
-    //]
     GLfloat[] mVertexData = [];
+    VertexData[] vertexDataArray = [];
     for (int i = 0; i < heightmap.width; i++)
     {
         for (int j = 0; j < heightmap.height; j++)
         {
-            //x,y,z information 
-            mVertexData ~= i;
-            mVertexData ~= heightmap.y_vals[i][j];
-            mVertexData ~= j;
-            //Textures
-            mVertexData ~= i;
-            mVertexData ~= j;
-
+            VertexData vertexData;
+            vertexData.vertices = vec3(i, heightmap.y_vals[i][j], j);
+            vertexData.normals = vec3(0.0f, 1.0f, 0.0f); //TODO: calculate normals
+            vertexData.texCoords = vec2(i / cast(float) heightmap.width, j / cast(float) heightmap
+                    .height);
+            vertexDataArray ~= vertexData;
         }
     }
 
-    //debug func
-    // for(int i = 0; i < mVertexData.length; i += 6){
-    //     write(mVertexData[i], " ");
-    //     write(mVertexData[i+1], " ");
-    //     write(mVertexData[i+2], " ");
-    //     writeln();
-    // }
-
-    //Index Data:
-    //Example 
     /*
+    // for (int i = 0; i < heightmap.width; i++)
+    // {
+    //     for (int j = 0; j < heightmap.height; j++)
+    //     {
+    //         //x,y,z information 
+    //         mVertexData ~= i;
+    //         mVertexData ~= heightmap.y_vals[i][j];
+    //         mVertexData ~= j;
+    //         //Textures
+    //         mVertexData ~= i;
+    //         mVertexData ~= j;
+
+    //     }
+    // }
+    
+
+   
+    //initializing for basic mesh
     my very bad sketch of a quad
             
    #4          #3
@@ -184,16 +244,23 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap)
     | /       |
     ___________
    #0         #m 
-    */
+  
 
-    //initializing for basic mesh
-    // GLuint[] mIndices = InitIndices(heightmap.width, heightmap.height);
-    //m.mNumIndices = cast(int) mIndices.length;
+    
+    GLuint[] mIndices = InitIndices(heightmap.width, heightmap.height);
+    m.mNumIndices = cast(int) mIndices.length;
+
+    */
 
     //initializion for fan mesh
 
     int patch_size = 3;
     GLuint[] mIndices = GeomipInitIndices(heightmap.width, heightmap.height, patch_size);
+
+    //only after initializing indices can we calc normals:
+    //CalculateNormals(vertexDataArray, mIndices);// this would work without geomip
+    GeomipCalculateNormals(vertexDataArray, mIndices);
+    PopulateVBO(mVertexData, vertexDataArray);
 
     // Vertex Arrays Object (VAO) Setup
     glGenVertexArrays(1, &m.mVAO);
@@ -211,7 +278,7 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap)
 
     //positions
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, GLfloat.sizeof * 5, cast(void*) 0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, GLfloat.sizeof * 8, cast(void*) 0);
 
     // // normals
     // glEnableVertexAttribArray(1);
@@ -219,12 +286,17 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap)
     //         GLfloat.sizeof * 3));
     //Textures instead
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, GLfloat.sizeof * 5, cast(GLvoid*)(
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, GLfloat.sizeof * 8, cast(GLvoid*)(
             GLfloat.sizeof * 3));
+
+    // normals
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, GLfloat.sizeof * 8, cast(GLvoid*)(
+            GLfloat.sizeof * 5));
 
     // Unbind our currently bound Vertex Array Object
     glBindVertexArray(0);
-    // Disable any attributes we opened in our Vertex Attribute Arrray,
+    // Disable any attributes we opened in our Vertex Attribute Array,
     // as we do not want to leave them open. 
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);

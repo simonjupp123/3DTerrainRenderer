@@ -9,6 +9,7 @@ import bindbc.opengl;
 
 import linear;
 import lod_manager;
+import vertex_info;
 
 const m_patchsize = 33; //TODO
 const m_width = 513;
@@ -208,4 +209,48 @@ void RenderGeo(vec3 camera_pos)
         }
     }
 
+}
+
+void GeomipCalculateNormals(ref VertexData[] vertexDataArray, GLuint[] Indices)
+{
+    uint Index = 0;
+
+    // Accumulate each triangle normal into each of the triangle vertices
+    for (int z = 0; z < m_height - 1; z += (m_patchsize - 1))
+    {
+        for (int x = 0; x < m_width - 1; x += (m_patchsize - 1))
+        {
+            int BaseVertex = z * m_width + x;
+            //printf("Base index %d\n", BaseVertex);
+            int NumIndices = m_lodInfo[0].info[0][0][0][0].count;
+            for (int i = 0; i < NumIndices; i += 3)
+            {
+                uint Index0 = BaseVertex + Indices[i];
+                uint Index1 = BaseVertex + Indices[i + 1];
+                uint Index2 = BaseVertex + Indices[i + 2];
+                vec3 v1 = vertexDataArray[Index1].vertices - vertexDataArray[Index0].vertices;
+                vec3 v2 = vertexDataArray[Index2].vertices - vertexDataArray[Index0].vertices;
+                vec3 Normal = v1.Cross(v2);
+                Normal = Normal.Normalize();
+
+                // vertexDataArray[Index0].normals += Normal;
+                // vertexDataArray[Index1].normals += Normal;
+                // vertexDataArray[Index2].normals += Normal;
+                vertexDataArray[Index0].normals = vertexDataArray[Index0].normals + Normal;
+                vertexDataArray[Index1].normals = vertexDataArray[Index1].normals + Normal;
+                vertexDataArray[Index2].normals = vertexDataArray[Index2].normals + Normal;
+            }
+        }
+    }
+
+    // Normalize all the vertex normals
+    // for (uint i = 0; i < Vertices.size(); i++)
+    // {
+    //     Vertices[i].Normal.Normalize();
+    // }
+    foreach (ref vertex; vertexDataArray)
+    {
+        // writeln(Normalize(vertex.normals));
+        vertex.normals = Normalize(vertex.normals);
+    }
 }
