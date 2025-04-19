@@ -120,6 +120,13 @@ struct Mesh
     IMaterial mMaterial;
 }
 
+struct VertexData
+{
+    vec3 vertices;
+    vec3 normals;
+    vec2 texCoords;
+}
+
 //Function to create our quadmap from our heightmap generator
 Mesh MakeMeshFromHeightmap(HeightMap heightmap)
 {
@@ -135,25 +142,14 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap)
     {
         for (int j = 0; j < heightmap.height; j++)
         {
-            //Vertex data TODO CHECK IF X,Y,Z is correct 
-            // mVertexData ~= (i - heightmap.width / 2) * 1;
+            //x,y,z information 
             mVertexData ~= i;
             mVertexData ~= heightmap.y_vals[i][j];
-            // mVertexData ~= 10;
-            // mVertexData ~= (j - heightmap.height / 2) * 1;
             mVertexData ~= j;
-            //Normal data
-            //random number between 0 and 1
+            //Textures
+            mVertexData ~= i;
+            mVertexData ~= j;
 
-            import std.random;
-
-        
-            mVertexData ~= (heightmap.y_vals[i][j] + 5) / 15;
-            mVertexData ~= (heightmap.y_vals[i][j] + 5) / 15;
-            mVertexData ~= (heightmap.y_vals[i][j] + 5) / 15;
-            mVertexData ~= i/m_width;
-            mVertexData ~= j/m_height;
-            
         }
     }
 
@@ -225,7 +221,6 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap)
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, GLfloat.sizeof * 5, cast(GLvoid*)(
             GLfloat.sizeof * 3));
-
 
     // Unbind our currently bound Vertex Array Object
     glBindVertexArray(0);
@@ -386,11 +381,12 @@ struct GraphicsApp
         // glUniformMatrix4fv(vp, 1, GL_TRUE, m_camera.GetViewProjMatrix().DataPtr());
 
         mTerrainMesh = MakeMeshFromHeightmap(generateHeightmap(513, 513, 2));
-        
-        Pipeline texturePipeline = new Pipeline("multiTexturePipeline","./pipelines/multitexture/basic.vert","./pipelines/multitexture/basic.frag");
+
+        Pipeline texturePipeline = new Pipeline("multiTexturePipeline", "./pipelines/multitexture/basic.vert", "./pipelines/multitexture/basic.frag");
         // Pipeline texturePipeline = new Pipeline("multiTexturePipeline","./pipelines/basic/basic.vert","./pipelines/basic/basic.frag");
-        IMaterial multiTextureMaterial = new MultiTextureMaterial("multiTexturePipeline","./assets/sand.ppm","./assets/grass.ppm","./assets/dirt.ppm","./assets/snow.ppm");
-        multiTextureMaterial.AddUniform(new Uniform("gVP", "mat4", m_camera.GetViewProjMatrix().DataPtr()));
+        IMaterial multiTextureMaterial = new MultiTextureMaterial("multiTexturePipeline", "./assets/sand.ppm", "./assets/grass.ppm", "./assets/dirt.ppm", "./assets/snow.ppm");
+        multiTextureMaterial.AddUniform(new Uniform("gVP", "mat4", m_camera.GetViewProjMatrix()
+                .DataPtr()));
         multiTextureMaterial.AddUniform(new Uniform("sampler1", 0));
         multiTextureMaterial.AddUniform(new Uniform("sampler2", 1));
         multiTextureMaterial.AddUniform(new Uniform("sampler3", 2));
@@ -400,7 +396,7 @@ struct GraphicsApp
 
         mActiveMesh = mTerrainMesh;
         // MeshNode  m2   = new MeshNode("terrain",terrain,multiTextureMaterial);
-		// mSceneTree.GetRootNode().AddChildSceneNode(m2);
+        // mSceneTree.GetRootNode().AddChildSceneNode(m2);
     }
 
     /// Update gamestate
@@ -421,7 +417,6 @@ struct GraphicsApp
 
         // Do opengl drawing
         // glUseProgram(mBasicGraphicsPipeline);
-        
 
         //faster to do viewProj mult on cpu instead of n times on GPU for each vertex
         // GLuint viewProj = glGetUniformLocation(mBasicGraphicsPipeline, "gVP");
@@ -433,11 +428,10 @@ struct GraphicsApp
 
         PipelineUse("multiTexturePipeline");
 
-
         //mesh updating
         mActiveMesh.mMaterial.Update();
         mActiveMesh.mMaterial.mUniformMap["gVP"].Set(m_camera.GetViewProjMatrix().DataPtr());
-        foreach(u ; mActiveMesh.mMaterial.mUniformMap)
+        foreach (u; mActiveMesh.mMaterial.mUniformMap)
         {
             u.Transfer();
         }
