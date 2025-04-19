@@ -251,6 +251,6 @@ void GeomipCalculateNormals(ref VertexData[] vertexDataArray, GLuint[] Indices)
     foreach (ref vertex; vertexDataArray)
     {
         // writeln(Normalize(vertex.normals));
-        vertex.normals = Normalize(vertex.normals);
+        vertex.normals = Normalize(vertex.normals * -1);
     }
 }
