@@ -16,6 +16,8 @@ uniform float gHeight1 = -2;
 uniform float gHeight2 = 3;
 uniform float gHeight3 = 8;
 
+uniform vec3 lightDir = vec3(-1,1,-1);
+
 
 vec3 GetColor(){
 	vec3 color;
@@ -46,9 +48,12 @@ vec3 GetColor(){
 	}
 
 	
-	return color * vNormal;
+	return color;
 }
 
 void main(){
-	fragColor = vec4(GetColor(), 1.0);
+	vec3 col = GetColor();
+	float diffuse = dot(vNormal, normalize(lightDir));
+	diffuse = max(0.3f, diffuse);
+	fragColor = vec4(col * diffuse, 1.0);
 }
