@@ -14,6 +14,9 @@ import camera_ogldev;
 import linear;
 import basic_mesh;
 import geomip;
+import pipeline;
+import materials;
+import uniform;
 
 /// Create a basic shader
 /// The result is a 'GLuint' representing the compiled 'program object' or otherwise 'graphics pipeline'
@@ -114,6 +117,7 @@ struct Mesh
     GLuint mVBO;
     GLuint mIBO;
     int mNumIndices;
+    IMaterial mMaterial;
 }
 
 //Function to create our quadmap from our heightmap generator
@@ -143,23 +147,13 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap)
 
             import std.random;
 
-            // //lakes sorta
-            // if (heightmap.y_vals[i][j] < -5)
-            // {
-            //     mVertexData ~= 0;
-            //     mVertexData ~= 100;
-            //     mVertexData ~= 255;
-            // }
-            // else
-            // {
-                mVertexData ~= (heightmap.y_vals[i][j] + 5) / 15;
-                mVertexData ~= (heightmap.y_vals[i][j] + 5) / 15;
-                mVertexData ~= (heightmap.y_vals[i][j] + 5) / 15;
-            // }
-
-            // mVertexData ~= uniform(0.0, 1.0);
-            // mVertexData ~= uniform(0.0, 1.0);
-            // mVertexData ~= uniform(0.0, 1.0);
+        
+            mVertexData ~= (heightmap.y_vals[i][j] + 5) / 15;
+            mVertexData ~= (heightmap.y_vals[i][j] + 5) / 15;
+            mVertexData ~= (heightmap.y_vals[i][j] + 5) / 15;
+            mVertexData ~= i/m_width;
+            mVertexData ~= j/m_height;
+            
         }
     }
 
@@ -221,12 +215,17 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap)
 
     //positions
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, GLfloat.sizeof * 6, cast(void*) 0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, GLfloat.sizeof * 5, cast(void*) 0);
 
-    // normals
+    // // normals
+    // glEnableVertexAttribArray(1);
+    // glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, GLfloat.sizeof * 6, cast(GLvoid*)(
+    //         GLfloat.sizeof * 3));
+    //Textures instead
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, GLfloat.sizeof * 6, cast(GLvoid*)(
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, GLfloat.sizeof * 5, cast(GLvoid*)(
             GLfloat.sizeof * 3));
+
 
     // Unbind our currently bound Vertex Array Object
     glBindVertexArray(0);
@@ -381,13 +380,27 @@ struct GraphicsApp
     void SetupScene()
     {
         // Build a basic shader
-        mBasicGraphicsPipeline = BuildBasicShader("./pipelines/basic/basic.vert", "./pipelines/basic/basic.frag");
-        // mat4 projectionMatrix = camera.getProjectionMatrix(45.0f, mScreenWidth / float(mScreenHeight), 0.1f, 100.0f);
-        GLuint vp = glGetUniformLocation(mBasicGraphicsPipeline, "view");
-        glUniformMatrix4fv(vp, 1, GL_TRUE, m_camera.GetViewProjMatrix().DataPtr());
+        // mBasicGraphicsPipeline = BuildBasicShader("./pipelines/basic/basic.vert", "./pipelines/basic/basic.frag");
+        // // mat4 projectionMatrix = camera.getProjectionMatrix(45.0f, mScreenWidth / float(mScreenHeight), 0.1f, 100.0f);
+        // GLuint vp = glGetUniformLocation(mBasicGraphicsPipeline, "view");
+        // glUniformMatrix4fv(vp, 1, GL_TRUE, m_camera.GetViewProjMatrix().DataPtr());
 
         mTerrainMesh = MakeMeshFromHeightmap(generateHeightmap(513, 513, 2));
+        
+        Pipeline texturePipeline = new Pipeline("multiTexturePipeline","./pipelines/multitexture/basic.vert","./pipelines/multitexture/basic.frag");
+        // Pipeline texturePipeline = new Pipeline("multiTexturePipeline","./pipelines/basic/basic.vert","./pipelines/basic/basic.frag");
+        IMaterial multiTextureMaterial = new MultiTextureMaterial("multiTexturePipeline","./assets/sand.ppm","./assets/grass.ppm","./assets/dirt.ppm","./assets/snow.ppm");
+        multiTextureMaterial.AddUniform(new Uniform("gVP", "mat4", m_camera.GetViewProjMatrix().DataPtr()));
+        multiTextureMaterial.AddUniform(new Uniform("sampler1", 0));
+        multiTextureMaterial.AddUniform(new Uniform("sampler2", 1));
+        multiTextureMaterial.AddUniform(new Uniform("sampler3", 2));
+        multiTextureMaterial.AddUniform(new Uniform("sampler4", 3));
+        // multiTextureMaterial.Update();
+        mTerrainMesh.mMaterial = multiTextureMaterial;
+
         mActiveMesh = mTerrainMesh;
+        // MeshNode  m2   = new MeshNode("terrain",terrain,multiTextureMaterial);
+		// mSceneTree.GetRootNode().AddChildSceneNode(m2);
     }
 
     /// Update gamestate
@@ -407,14 +420,27 @@ struct GraphicsApp
         // glEnable(GL_CULL_FACE);
 
         // Do opengl drawing
-        glUseProgram(mBasicGraphicsPipeline);
+        // glUseProgram(mBasicGraphicsPipeline);
+        
 
         //faster to do viewProj mult on cpu instead of n times on GPU for each vertex
-        GLuint viewProj = glGetUniformLocation(mBasicGraphicsPipeline, "gVP");
+        // GLuint viewProj = glGetUniformLocation(mBasicGraphicsPipeline, "gVP");
+        // multiTextureMaterial.update(); //TODO FIX THISm dont need a scene tree, but need to correctly update texture maps etc, think we can just do this one time
 
         // Send matrices to shader
         // TRANSPOSING WAS THE MAIN ISSUE
-        glUniformMatrix4fv(viewProj, 1, GL_TRUE, m_camera.GetViewProjMatrix().DataPtr());
+        // glUniformMatrix4fv(viewProj, 1, GL_TRUE, m_camera.GetViewProjMatrix().DataPtr());
+
+        PipelineUse("multiTexturePipeline");
+
+
+        //mesh updating
+        mActiveMesh.mMaterial.Update();
+        mActiveMesh.mMaterial.mUniformMap["gVP"].Set(m_camera.GetViewProjMatrix().DataPtr());
+        foreach(u ; mActiveMesh.mMaterial.mUniformMap)
+        {
+            u.Transfer();
+        }
 
         //on LOD change, the following will also change internally, ibo and mNumindices --not actually changing anything about the VBO
         glBindVertexArray(mActiveMesh.mVAO);

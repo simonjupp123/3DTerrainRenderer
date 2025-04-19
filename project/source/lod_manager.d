@@ -73,7 +73,7 @@ class LodManager
             {
                 float patch_x_center = patch_x * m_patch_size + centerStep; //TODO, COME BACK TO THIS, WILL NOT WORK WITHOUT WORLD SCALE IN LONG RUN/ PAYING ATTENTION TO HARDCODED heightmap
                 float patch_z_center = patch_z * m_patch_size + centerStep;
-                vec3 patch_center = vec3(patch_x_center, 0.0f, patch_z_center); //FIX y VALUE
+                vec3 patch_center = vec3(patch_z_center, 0.0f, patch_x_center); //Working now because we transpose 
                 float dist = Distance(camera_pos, patch_center);
                 //Todo fix this:
                 int coreLod = 4;
@@ -82,15 +82,15 @@ class LodManager
                 {
                     coreLod = 3;
                 }
-                else if (dist < 350)
+                if (dist < 350)
                 {
                     coreLod = 2;
                 }
-                else if (dist < 200)
+                if (dist < 200)
                 {
                     coreLod = 1;
                 }
-                else if (dist < 100)
+                if (dist < 100)
                 {
                     coreLod = 0;
                 }
