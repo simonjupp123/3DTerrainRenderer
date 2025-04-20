@@ -19,8 +19,10 @@ class LodManager
     int m_patch_size;
     int m_num_patches_x;
     int m_num_patches_z;
+    int mOffsetX;
+    int mOffsetZ;
 
-    void InitLodManager(int patch_size, int num_patches_x, int num_patches_z)
+    void InitLodManager(int patch_size, int num_patches_x, int num_patches_z, int offX, int offZ)
     {   
         //1D 
         // m_map.length = num_patches_x * num_patches_z;
@@ -44,6 +46,8 @@ class LodManager
         m_patch_size = patch_size;
         m_num_patches_x = num_patches_x;
         m_num_patches_z = num_patches_z;
+        mOffsetX = offX;
+        mOffsetZ = offZ;
     }
 
     PatchLodInfo getPatchInfo(int patch_x, int patch_z)
@@ -71,9 +75,9 @@ class LodManager
         {
             for (int patch_x = 0; patch_x < m_num_patches_x; patch_x++)
             {
-                float patch_x_center = patch_x * m_patch_size + centerStep; //TODO, COME BACK TO THIS, WILL NOT WORK WITHOUT WORLD SCALE IN LONG RUN/ PAYING ATTENTION TO HARDCODED heightmap
-                float patch_z_center = patch_z * m_patch_size + centerStep;
-                vec3 patch_center = vec3(patch_z_center, 0.0f, patch_x_center); //Working now because we transpose 
+                float patch_x_center = patch_x * m_patch_size + centerStep + mOffsetX; 
+                float patch_z_center = patch_z * m_patch_size + centerStep + mOffsetZ;
+                vec3 patch_center = vec3(patch_x_center, 0.0f, patch_z_center);
                 float dist = Distance(camera_pos, patch_center);
                 //Todo fix this:
                 int coreLod = 4;
@@ -94,9 +98,7 @@ class LodManager
                 {
                     coreLod = 0;
                 }
-                // m_map[(patch_z * m_num_patches_x) + patch_x].core = coreLod;
-                m_map2D[patch_z][patch_x].core = coreLod;
-                // pInfo.core = coreLod;
+                m_map2D[patch_x][patch_z].core = coreLod;
 
             }
         }
@@ -120,11 +122,8 @@ class LodManager
                 int topInd = patch_z + 1;
                 int bottomInd = patch_z - 1;
 
-                //if we assume all are valid
+    
                 int leftCore = leftInd >= 0 ? m_map2D[patch_z][leftInd].core : -1;
-                // writeln(rightInd);
-                // writeln(patch_z);
-                // writeln(m_map2D[patch_z].length);
                 int rightCore = rightInd < m_num_patches_x ? m_map2D[patch_z][rightInd].core : -1;
                 int topCore = topInd < m_num_patches_z ? m_map2D[topInd][patch_x].core : -1;
                 int bottomCore = bottomInd >= 0 ? m_map2D[bottomInd][patch_x].core : -1;

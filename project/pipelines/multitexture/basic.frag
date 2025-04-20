@@ -11,8 +11,8 @@ uniform sampler2D sampler2;
 uniform sampler2D sampler3;
 uniform sampler2D sampler4;
 
-uniform float gHeight0 = -5;
-uniform float gHeight1 = -2;
+uniform float gHeight0 = -8;
+uniform float gHeight1 = -5;
 uniform float gHeight2 = 3;
 uniform float gHeight3 = 8;
 
@@ -53,7 +53,7 @@ vec3 GetColor(){
 
 void main(){
 	vec3 col = GetColor();
-	float diffuse = dot(vNormal, normalize(lightDir));
+	float diffuse = dot(normalize(vNormal), normalize(lightDir));
 	diffuse = max(0.3f, diffuse);
 	fragColor = vec4(col * diffuse, 1.0);
 }

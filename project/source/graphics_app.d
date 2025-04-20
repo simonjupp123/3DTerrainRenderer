@@ -119,6 +119,8 @@ struct Mesh
     GLuint mIBO;
     int mNumIndices;
     IMaterial mMaterial;
+    GeomipManager mGeomipManager;
+
 }
 
 // struct VertexData
@@ -184,7 +186,7 @@ void CalculateNormals(ref VertexData[] vertexDataArray, GLuint[] indices)
 }
 
 //Function to create our quadmap from our heightmap generator
-Mesh MakeMeshFromHeightmap(HeightMap heightmap)
+Mesh MakeMeshFromHeightmap(HeightMap heightmap, int offsetX, int offsetZ)
 {
     Mesh m;
 
@@ -197,10 +199,9 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap)
         for (int j = 0; j < heightmap.height; j++)
         {
             VertexData vertexData;
-            vertexData.vertices = vec3(i, heightmap.y_vals[i][j], j);
-            vertexData.normals = vec3(0.0f, 1.0f, 0.0f); //TODO: calculate normals
-            vertexData.texCoords = vec2(i / cast(float) heightmap.width, j / cast(float) heightmap
-                    .height);
+            vertexData.vertices = vec3(i + offsetX, heightmap.y_vals[i][j], j+offsetZ);
+            vertexData.normals = vec3(0.0f, 0.0f, 0.0f); //TODO: calculate normals
+            vertexData.texCoords = vec2(i, j);
             vertexDataArray ~= vertexData;
         }
     }
@@ -255,11 +256,13 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap)
     //initializion for fan mesh
 
     int patch_size = 3;
-    GLuint[] mIndices = GeomipInitIndices(heightmap.width, heightmap.height, patch_size);
+    GeomipManager geomipManager = new GeomipManager(offsetX,offsetZ);
+    GLuint[] mIndices = geomipManager.GeomipInitIndices(heightmap.width, heightmap.height, patch_size);
 
     //only after initializing indices can we calc normals:
     //CalculateNormals(vertexDataArray, mIndices);// this would work without geomip
-    GeomipCalculateNormals(vertexDataArray, mIndices);
+    geomipManager.GeomipCalculateNormals(vertexDataArray, mIndices);
+    m.mGeomipManager = geomipManager;
     PopulateVBO(mVertexData, vertexDataArray);
 
     // Vertex Arrays Object (VAO) Setup
@@ -308,10 +311,11 @@ struct GraphicsApp
     bool mGameIsRunning = true;
     SDL_GLContext mContext;
     SDL_Window* mWindow;
-    Mesh mTerrainMesh;
+    // Mesh mTerrainMesh;
     // Camera camera;
 
     Mesh mActiveMesh; // Assign to either triangle or bunny depending on key press
+    Mesh[] mTerrainMeshes = [];
     auto mFillState = GL_FILL;
 
     GLuint mBasicGraphicsPipeline;
@@ -396,26 +400,6 @@ struct GraphicsApp
                     writeln("Toggling Wire Mode");
                 }
                 m_camera.OnKeyboard(event.key.keysym.sym);
-                // else if(event.key.keysym.sym == SDLK_DOWN){
-                //     m_camera.MoveBackward();
-                // }
-                // else if(event.key.keysym.sym == SDLK_UP){
-                //     m_camera.MoveForward();
-                // }
-                // else if(event.key.keysym.sym == SDLK_LEFT){
-                //     m_camera.MoveLeft();
-                // }
-                // else if(event.key.keysym.sym == SDLK_RIGHT){
-                //     m_camera.MoveRight();
-                // }
-                // else if(event.key.keysym.sym == SDLK_LSHIFT){
-                //     m_camera.MoveUp();
-                // }
-                // else if(event.key.keysym.sym == SDLK_LCTRL){
-                //     m_camera.MoveDown();
-                // }
-                // writeln("Camera Position: ",camera.mEyePosition);
-                // m_camera.debugCamera();
 
             }
             int mouseX, mouseY;
@@ -435,7 +419,7 @@ struct GraphicsApp
 
         float FOV = 45.0f;
         float zNear = 0.1f;
-        float zFar = 1000.0f;
+        float zFar = 2000.0f;
         PersProjInfo persProjInfo = {
             FOV, cast(float) mScreenWidth, cast(float) mScreenHeight, zNear, zFar
         };
@@ -452,7 +436,6 @@ struct GraphicsApp
         // GLuint vp = glGetUniformLocation(mBasicGraphicsPipeline, "view");
         // glUniformMatrix4fv(vp, 1, GL_TRUE, m_camera.GetViewProjMatrix().DataPtr());
 
-        mTerrainMesh = MakeMeshFromHeightmap(generateHeightmap(513, 513, 2));
 
         Pipeline texturePipeline = new Pipeline("multiTexturePipeline", "./pipelines/multitexture/basic.vert", "./pipelines/multitexture/basic.frag");
         // Pipeline texturePipeline = new Pipeline("multiTexturePipeline","./pipelines/basic/basic.vert","./pipelines/basic/basic.frag");
@@ -463,10 +446,29 @@ struct GraphicsApp
         multiTextureMaterial.AddUniform(new Uniform("sampler2", 1));
         multiTextureMaterial.AddUniform(new Uniform("sampler3", 2));
         multiTextureMaterial.AddUniform(new Uniform("sampler4", 3));
-        // multiTextureMaterial.Update();
-        mTerrainMesh.mMaterial = multiTextureMaterial;
 
-        mActiveMesh = mTerrainMesh;
+        int base = -500;
+        for (int i = 0; i < 1; i++)
+        {
+            for(int j = 0; j < 2; j++)
+            {
+                writeln("Generating terrain mesh at ", i, " ", j);
+                // Generate a heightmap and create a mesh from it
+                Mesh mTerrainMesh = MakeMeshFromHeightmap(generateHeightmap(513, 513, 2, i*512+base,j*512+base), i*512+base,j*512+base);
+                mTerrainMesh.mMaterial = multiTextureMaterial;
+                mTerrainMeshes ~= mTerrainMesh;
+
+            }
+        }
+        
+        // multiTextureMaterial.Update();
+        // foreach (ref m; mTerrainMeshes)
+        // {
+        //     m
+        // }
+        // mTerrainMesh.mMaterial = multiTextureMaterial;
+
+        // mActiveMesh = mTerrainMesh;
         // MeshNode  m2   = new MeshNode("terrain",terrain,multiTextureMaterial);
         // mSceneTree.GetRootNode().AddChildSceneNode(m2);
     }
@@ -499,25 +501,29 @@ struct GraphicsApp
         // glUniformMatrix4fv(viewProj, 1, GL_TRUE, m_camera.GetViewProjMatrix().DataPtr());
 
         PipelineUse("multiTexturePipeline");
-
-        //mesh updating
-        mActiveMesh.mMaterial.Update();
-        mActiveMesh.mMaterial.mUniformMap["gVP"].Set(m_camera.GetViewProjMatrix().DataPtr());
-        foreach (u; mActiveMesh.mMaterial.mUniformMap)
+        foreach(mesh; mTerrainMeshes)
         {
-            u.Transfer();
+            mActiveMesh = mesh;
+            //mesh updating
+            mActiveMesh.mMaterial.Update();
+            mActiveMesh.mMaterial.mUniformMap["gVP"].Set(m_camera.GetViewProjMatrix().DataPtr());
+            foreach (u; mActiveMesh.mMaterial.mUniformMap)
+            {
+                u.Transfer();
+            }
+
+            //on LOD change, the following will also change internally, ibo and mNumindices --not actually changing anything about the VBO
+            glBindVertexArray(mActiveMesh.mVAO);
+            glBindBuffer(GL_ARRAY_BUFFER, mActiveMesh.mVBO);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mActiveMesh.mIBO);
+
+            glPolygonMode(GL_FRONT_AND_BACK, mFillState); //https://docs.gl/gl4/glPolygonMode
+
+            // glDrawElements(GL_TRIANGLES, mActiveMesh.mNumIndices, GL_UNSIGNED_INT, null);
+            mActiveMesh.mGeomipManager.RenderGeo(m_camera.m_pos); // TODO should make a call to geomip
+            // glBindVertexArray(0);
         }
-
-        //on LOD change, the following will also change internally, ibo and mNumindices --not actually changing anything about the VBO
-        glBindVertexArray(mActiveMesh.mVAO);
-        glBindBuffer(GL_ARRAY_BUFFER, mActiveMesh.mVBO);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mActiveMesh.mIBO);
-
-        glPolygonMode(GL_FRONT_AND_BACK, mFillState); //https://docs.gl/gl4/glPolygonMode
-
-        // glDrawElements(GL_TRIANGLES, mActiveMesh.mNumIndices, GL_UNSIGNED_INT, null);
-        RenderGeo(m_camera.m_pos); // TODO should make a call to geomip
-        // glBindVertexArray(0);
+        
 
         SDL_GL_SwapWindow(mWindow);
     }

@@ -35,7 +35,7 @@ static float EDGE_STEP = 0.5f;
 
 class BasicCamera
 {
-    float m_speed = 0.2f;
+    float m_speed = 40.0f;
     int m_windowWidth = 0;
     int m_windowHeight = 0;
 

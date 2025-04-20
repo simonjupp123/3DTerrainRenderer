@@ -26,17 +26,17 @@ struct HeightMap
     }
 }
 
-HeightMap generateHeightmap(int width, int height, float scale)
+HeightMap generateHeightmap(int width, int height, float scale, int offsetX, int offsetZ)
 {
-    const int GRID_SIZE = 100;
+    const int GRID_SIZE = 150;
     //scale is used to control how spread out our vertices
     HeightMap heightmap = HeightMap(width, height);
     foreach (x; 0 .. width)
     {
         foreach (z; 0 .. height)
         {
-            float nx = x * scale;
-            float nz = z * scale;
+            float nx = (x+offsetX) * scale;
+            float nz = (z+offsetZ) * scale;
             float val = 0.0f;
             for (int i = 0; i < 10; i++)
             {
