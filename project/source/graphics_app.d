@@ -257,7 +257,8 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap, int offsetX, int offsetZ)
 
     int patch_size = 3;
     GeomipManager geomipManager = new GeomipManager(offsetX,offsetZ);
-    GLuint[] mIndices = geomipManager.GeomipInitIndices(heightmap.width, heightmap.height, patch_size);
+    // GLuint[] mIndices = geomipManager.GeomipInitIndices(heightmap.width, heightmap.height, patch_size);
+    GLuint[] mIndices = geomipManager.mIndices;
 
     //only after initializing indices can we calc normals:
     //CalculateNormals(vertexDataArray, mIndices);// this would work without geomip
@@ -447,7 +448,7 @@ struct GraphicsApp
         multiTextureMaterial.AddUniform(new Uniform("sampler3", 2));
         multiTextureMaterial.AddUniform(new Uniform("sampler4", 3));
 
-        int base = -500;
+        int base = 0;
         for (int i = 0; i < 1; i++)
         {
             for(int j = 0; j < 2; j++)

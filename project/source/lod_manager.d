@@ -52,17 +52,8 @@ class LodManager
 
     PatchLodInfo getPatchInfo(int patch_x, int patch_z)
     {
-        //returns patch info
-        // PatchLodInfo plod;
-        // plod.left =
-        // plod.right =
-        // plod.bottom =
-        // plod.top =
-        // plod.core
-        //2d
+     
         return m_map2D[patch_z][patch_x];
-        //1D
-        //return m_map[(patch_z * m_num_patches_x) + patch_x];
     }
 
     void update(vec3 camera_pos)
@@ -82,19 +73,19 @@ class LodManager
                 //Todo fix this:
                 int coreLod = 4;
                 // writeln(dist);
-                if (dist < 500)
+                if (dist < 1500)
                 {
                     coreLod = 3;
                 }
-                if (dist < 350)
+                if (dist < 1200)
                 {
                     coreLod = 2;
                 }
-                if (dist < 200)
+                if (dist < 800)
                 {
                     coreLod = 1;
                 }
-                if (dist < 100)
+                if (dist < 400)
                 {
                     coreLod = 0;
                 }

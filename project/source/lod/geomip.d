@@ -10,6 +10,7 @@ import bindbc.opengl;
 import linear;
 import lod_manager;
 import vertex_info;
+import lod;
 
 
 
@@ -27,7 +28,7 @@ struct LodInfo
 };
 
 //probably should refactor this so it inherits from an abstract class
-class GeomipManager{
+class GeomipManager : LODMethod{
     LodManager m_lodManager;
     LodInfo[] m_lodInfo;
     const m_patchsize = 33; //TODO
@@ -38,6 +39,7 @@ class GeomipManager{
     LodManager right;
     LodManager top;
     LodManager bottom;
+    GLuint[] mIndices;
 
 
     const int m_Xpatches = (m_width - 1) / (m_patchsize - 1);
@@ -56,7 +58,7 @@ class GeomipManager{
 
     }
 
-    GLuint[] GeomipInitIndices(int width, int height, int patch_size)
+    void GeomipInitIndices(int width, int height, int patch_size)
     {
         writeln(m_Xpatches);
         writeln(m_Zpatches);
@@ -69,12 +71,15 @@ class GeomipManager{
         // const temp_resize = 400; //TODO FIND THE ACTUAL SIZE OF THE BUFFER AND RESIZE 
         //determine number of indices first to resize buffer
         indices.length = CalcMaxIndices();
+        writeln("Max Indices: ", indices.length);
         for (int i = 0; i < MAX_LOD; i++)
         {
             index = InitInicidesLOD(index, indices, i);
         }
+        writeln(index);
 
-        return indices;
+        mIndices = indices;
+        //return indices;
     }
 
     int CalcMaxIndices()
