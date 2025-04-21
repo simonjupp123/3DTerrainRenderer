@@ -135,32 +135,32 @@ class Pipeline
 
         // Compile vertex shader
         vertexShader = glCreateShader(GL_VERTEX_SHADER);
-        // const char* vSource = toStringz(vertexSource);
-        const char* vSource = vertexSource.ptr;
+        const char* vSource = toStringz(vertexSource);
+        // const char* vSource = vertexSource.ptr;
         glShaderSource(vertexShader, 1, &vSource, null);
         glCompileShader(vertexShader);
         CheckShaderError(vertexShader);
 
         // Compile fragment shader
         fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-        // const char* fSource = toStringz(fragmentSource);
-        const char* fSource = fragmentSource.ptr;
+        const char* fSource = toStringz(fragmentSource);
+        // const char* fSource = fragmentSource.ptr;
         glShaderSource(fragmentShader, 1, &fSource, null);
         glCompileShader(fragmentShader);
         CheckShaderError(fragmentShader);
         
         // Compile tesselator control shader
         tesselatorControlShader = glCreateShader(GL_TESS_CONTROL_SHADER);
-        // const char* tcSource = toStringz(tesselatorControlSource);
-        const char* tcSource = tesselatorControlSource.ptr;
+        const char* tcSource = toStringz(tesselatorControlSource);
+        // const char* tcSource = tesselatorControlSource.ptr;
         glShaderSource(tesselatorControlShader, 1, &tcSource, null);
         glCompileShader(tesselatorControlShader);
         CheckShaderError(tesselatorControlShader);
 
         // Compile tesselator evaluation shader
         tesselatorEvalShader = glCreateShader(GL_TESS_EVALUATION_SHADER);
-        // const char* teSource = toStringz(tesselatorEvalSource);
-        const char* teSource = tesselatorEvalSource.ptr;
+        const char* teSource = toStringz(tesselatorEvalSource);
+        // const char* teSource = tesselatorEvalSource.ptr;
         glShaderSource(tesselatorEvalShader, 1, &teSource, null);
         glCompileShader(tesselatorEvalShader);
         CheckShaderError(tesselatorEvalShader);

@@ -20,7 +20,7 @@ uniform float gHeight3 = 8;
 
 uniform vec3 lightDir = vec3(-1,1,-1);
 
-uniform float gColorTexcoordScaling = 16.0;
+uniform float gColorTexcoordScaling = 64.0;
 
 
 
@@ -61,10 +61,10 @@ vec3 GetColor(){
 
 vec3 CalcNormal()
 {   
-    float left  = textureOffset(gHeightMap, Tex3, ivec2(-1, 0)).r;
-    float right = textureOffset(gHeightMap, Tex3, ivec2( 1, 0)).r;
-    float up    = textureOffset(gHeightMap, Tex3, ivec2( 0, 1)).r;
-    float down  = textureOffset(gHeightMap, Tex3, ivec2( 0, -1)).r;
+    float left  = textureOffset(gHeightMap, Tex3, ivec2(-1, 0)).r*255;
+    float right = textureOffset(gHeightMap, Tex3, ivec2( 1, 0)).r*255;
+    float up    = textureOffset(gHeightMap, Tex3, ivec2( 0, 1)).r*255;
+    float down  = textureOffset(gHeightMap, Tex3, ivec2( 0, -1)).r*255;
 
     vec3 normal = normalize(vec3(left - right, 2.0, up - down));
     
@@ -78,7 +78,7 @@ void main()
 
     vec3 Normal = CalcNormal();
 
-    float Diffuse = dot(Normal, lightDir);
+    float Diffuse = dot(Normal, normalize(lightDir));
 
     Diffuse = max(0.4f, Diffuse);
 

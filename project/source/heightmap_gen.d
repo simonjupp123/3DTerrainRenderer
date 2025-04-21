@@ -88,7 +88,7 @@ void saveHeightMapToPPM(HeightMap heightmap, string filename)
             // Normalize the height to a range of 0-255
             // int grayscale = cast(int)(height) + 32;
             // int grayscale = cast(int) clamp(height, 0.0f, 255.0f);
-            int grayscale = cast(int)(height + 18) * (255) / (30);
+            int grayscale = cast(int)(height + 18) * (255) / (31);
             // int grayscale = cast(int) height;
             grayscale = clamp(grayscale, 0, 255);
 

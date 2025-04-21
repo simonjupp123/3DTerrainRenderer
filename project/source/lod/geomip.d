@@ -218,7 +218,8 @@ class GeomipManager : LODMethod{
     override void Render(vec3 camera_pos)
     {
         //iterate over each patch and render
-
+        // Debug information to see impact of number of triangles rendered with LOD vs non-lod
+        int numTriangles = 0;
         m_lodManager.update(camera_pos);
         for (int patch_z = 0; patch_z < m_Zpatches; patch_z++)
         {
@@ -240,8 +241,10 @@ class GeomipManager : LODMethod{
                 int baseVert = (patch_z * (m_patchsize - 1)) * m_width + (patch_x * (m_patchsize - 1));
                 glDrawElementsBaseVertex(GL_TRIANGLES, m_lodInfo[core].info[l][r][t][b].count, GL_UNSIGNED_INT, cast(
                         void*) baseInd, baseVert);
+                numTriangles += m_lodInfo[core].info[l][r][t][b].count / 3;
             }
         }
+        // writeln("Number of triangles rendered: ", numTriangles);
 
     }
 

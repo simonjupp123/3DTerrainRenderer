@@ -27,7 +27,7 @@ void main()
     Tex3 = (t1 - t0) * v + t0;          // final interpolation
 
     // sample the height from the height map
-    Height = (texture(gHeightMap, Tex3).r * 255.0f) * (30) / (255) - 18;   
+    Height = (texture(gHeightMap, Tex3).r * 255.0f) * (31) / (255) - 18;   
 
     // get the position for each vertex
     vec4 p00 = gl_in[0].gl_Position;

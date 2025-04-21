@@ -376,9 +376,9 @@ class BasicCamera
     {
         mat4 CameraTransformation;
         CameraTransformation.InitCameraTransform(m_pos, m_target, m_up);
-
         return CameraTransformation;
     }
+    
 
     mat4 GetViewProjMatrix()
     {
