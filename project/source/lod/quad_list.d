@@ -8,7 +8,8 @@ import bindbc.opengl;
 import linear;
 import vertex_info;
 
-class QuadList : LODMethod{
+class QuadList : LODMethod
+{
     int mOffsetX = 0;
     int mOffsetZ = 0;
     int m_width;
@@ -20,11 +21,11 @@ class QuadList : LODMethod{
         mOffsetZ = offsetZ;
         m_width = width;
         m_depth = depth;
-        
-    }
-    
 
-    override void Render(vec3 pos){
+    }
+
+    override void Render(vec3 pos)
+    {
         // import std.stdio;
         // writeln("rendering");
         glPatchParameteri(GL_PATCH_VERTICES, 4);
@@ -32,13 +33,16 @@ class QuadList : LODMethod{
         // glDrawArrays(GL_PATCHES, 0, 4*(m_depth - 1)*(m_width - 1));
 
     }
+
     override void InitIndices(ref GLuint[] indices)
     {
         int Index = 0;
 
-        for (int z = 0 ; z < m_depth - 1 ; z++) {
-            for (int x = 0 ; x < m_width - 1 ; x++) {												
-              
+        for (int z = 0; z < m_depth - 1; z++)
+        {
+            for (int x = 0; x < m_width - 1; x++)
+            {
+
                 uint IndexBottomLeft = z * m_width + x;
                 indices ~= IndexBottomLeft;
 
@@ -47,7 +51,7 @@ class QuadList : LODMethod{
 
                 uint IndexTopLeft = (z + 1) * m_width + x;
                 indices ~= IndexTopLeft;
-            
+
                 uint IndexTopRight = (z + 1) * m_width + x + 1;
                 indices ~= IndexTopRight;
             }
@@ -55,25 +59,26 @@ class QuadList : LODMethod{
 
     }
 
-    void InitVertices(ref GLfloat[] mVertexData, VertexData[] vertexDataArray){
-        float worldScale = 1.0f; //could be a problem TODO (WITH ORDER OF ADDING OFFSET then multing by worldScale)
-        float textureScale = 1.0f;
+    void InitVertices(ref GLfloat[] mVertexData, VertexData[] vertexDataArray)
+    {
+        float worldScale = 10.0f; // scale the the x,z positions by a certain ratio
+        float textureScale = 8.0f; // scale the texture coordinates based on the width of the terrain, generally this should be the same as the world scale
         foreach (vertex; vertexDataArray)
         {
             // Add vertex position
             mVertexData ~= vertex.vertices.x * worldScale;
             // mVertexData ~= vertex.vertices.y;
-            mVertexData ~= 0;
+            mVertexData ~= 0.0f; // We are rendering a flat terrain, so y is always 0
             mVertexData ~= vertex.vertices.z * worldScale;
 
             // Add texture coordinates
-            mVertexData ~= vertex.texCoords.x * textureScale/ m_width;
-            mVertexData ~= vertex.texCoords.y * textureScale/ m_depth;
+            mVertexData ~= vertex.texCoords.x * textureScale / m_width;
+            mVertexData ~= vertex.texCoords.y * textureScale / m_depth;
 
             // mVertexData ~= vertex.normals.x;
             // mVertexData ~= vertex.normals.y;
             // mVertexData ~= vertex.normals.z;
         }
     }
-    
+
 }

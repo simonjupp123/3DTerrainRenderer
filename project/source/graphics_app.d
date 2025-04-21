@@ -133,8 +133,6 @@ struct Mesh
 //     vec2 texCoords;
 // }
 
-
-
 void CalculateNormals(ref VertexData[] vertexDataArray, GLuint[] indices)
 { // Calculate normals for each vertex based on the indices
 
@@ -179,24 +177,24 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap, int offsetX, int offsetZ)
 
     GLfloat[] mVertexData = [];
     VertexData[] vertexDataArray = [];
-    for (int i = 0; i < heightmap.width; i++)
-    {
-        for (int j = 0; j < heightmap.height; j++)
-        {
-            VertexData vertexData;
-            vertexData.vertices = vec3(i + offsetX, heightmap.y_vals[i][j], j+offsetZ);
-            vertexData.normals = vec3(0.0f, 0.0f, 0.0f); //TODO: calculate normals
-            vertexData.texCoords = vec2(i, j);
-            vertexDataArray ~= vertexData;
-        }
-    }
+
     writeln("VertexDataArray length: ", vertexDataArray.length);
 
-    
-    if (mMode == "GEOMIP"){
-
+    if (mMode == "GEOMIP")
+    {
+        for (int i = 0; i < heightmap.width; i++)
+        {
+            for (int j = 0; j < heightmap.height; j++)
+            {
+                VertexData vertexData;
+                vertexData.vertices = vec3(i + offsetX, heightmap.y_vals[i][j], j + offsetZ);
+                vertexData.normals = vec3(0.0f, 0.0f, 0.0f); //TODO: calculate normals
+                vertexData.texCoords = vec2(i, j);
+                vertexDataArray ~= vertexData;
+            }
+        }
         int patch_size = 3;
-        GeomipManager geomipManager = new GeomipManager(offsetX,offsetZ);
+        GeomipManager geomipManager = new GeomipManager(offsetX, offsetZ);
         // geomipManager.GeomipInitIndices(heightmap.width, heightmap.height, patch_size);
         GLuint[] mIndices = geomipManager.mIndices;
 
@@ -243,16 +241,25 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap, int offsetX, int offsetZ)
         glDisableVertexAttribArray(1);
         glDisableVertexAttribArray(2);
     }
-    else if(mMode == "QUAD"){
+    else if (mMode == "QUAD")
+    {
+        int n_patches = 500; //DETERMINES HOW BIG THE PATCH WILL BE
+        for (int i = 0; i < n_patches; i++)
+        {
+            for (int j = 0; j < n_patches; j++)
+            {
+                VertexData vertexData;
+                vertexData.vertices = vec3(i + offsetX, heightmap.y_vals[i][j], j + offsetZ);
+                vertexData.normals = vec3(0.0f, 0.0f, 0.0f); //TODO: calculate normals
+                vertexData.texCoords = vec2(i, j);
+                vertexDataArray ~= vertexData;
+            }
+        }
 
-        int n_patches = 512;
-        QuadList quadList = new QuadList(offsetX,offsetZ, n_patches,n_patches);
-        //only after initializing indices can we calc normals:
-        //CalculateNormals(vertexDataArray, mIndices);// this would work without geomip
-        // geomipManager.GeomipCalculateNormals(vertexDataArray, mIndices);
+        QuadList quadList = new QuadList(offsetX, offsetZ, n_patches, n_patches);
+
         m.mQuadList = quadList;
         m.mLODMethod = quadList;
-        
 
         //setup state
         glGenVertexArrays(1, &m.mVAO);
@@ -265,16 +272,13 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap, int offsetX, int offsetZ)
         int POS_LOC = 0;
         int TEX_LOC = 1;
 
-        size_t NumFloats = 0;
-        
         glEnableVertexAttribArray(POS_LOC);
-        glVertexAttribPointer(POS_LOC, 3, GL_FLOAT, GL_FALSE, GLfloat.sizeof * 5, cast(void*) (NumFloats * GLfloat.sizeof));
-        NumFloats += 3;
+        glVertexAttribPointer(POS_LOC, 3, GL_FLOAT, GL_FALSE, GLfloat.sizeof * 5, cast(void*) 0);
 
         glEnableVertexAttribArray(TEX_LOC);
-        glVertexAttribPointer(TEX_LOC, 2, GL_FLOAT, GL_FALSE, GLfloat.sizeof * 5, cast(void*) (NumFloats * GLfloat.sizeof));
-        NumFloats += 2;
-        
+        glVertexAttribPointer(TEX_LOC, 2, GL_FLOAT, GL_FALSE, GLfloat.sizeof * 5, cast(GLvoid*)(
+                3 * GLfloat.sizeof));
+
         //end of setup state
 
         //populating buffers
@@ -289,7 +293,6 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap, int offsetX, int offsetZ)
         //index buffer
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.length * GLuint.sizeof, indices.ptr, GL_STATIC_DRAW);
         //end of populating buffers
-
 
         glBindVertexArray(0);
         glDisableVertexAttribArray(0);
@@ -431,23 +434,24 @@ struct GraphicsApp
         int base = 0;
         for (int i = 0; i < 1; i++)
         {
-            for(int j = 0; j < 1; j++)
+            for (int j = 0; j < 1; j++)
             {
                 writeln("Generating terrain mesh at ", i, " ", j);
                 // Generate a heightmap and create a mesh from it
-                Mesh mTerrainMesh = MakeMeshFromHeightmap(generateHeightmap(513, 513, 2, i*512+base,j*512+base), i*512+base,j*512+base);
-                
+                Mesh mTerrainMesh = MakeMeshFromHeightmap(generateHeightmap(513, 513, 2, i * 512 + base, j * 512 + base), i * 512 + base, j * 512 + base);
+
                 mTerrainMeshes ~= mTerrainMesh;
 
             }
         }
 
         IMaterial material;
-        if (mMode == "GEOMIP"){
+        if (mMode == "GEOMIP")
+        {
             Pipeline texturePipeline = new Pipeline("multiTexturePipeline", "./pipelines/multitexture/basic.vert", "./pipelines/multitexture/basic.frag");
-            
+
             // Pipeline texturePipeline = new Pipeline("multiTexturePipeline","./pipelines/basic/basic.vert","./pipelines/basic/basic.frag");
-            material = new MultiTextureMaterial("multiTexturePipeline", "./assets/sand.ppm", "./assets/grass.ppm", "./assets/dirt.ppm", "./assets/snow.ppm");
+            material = new MultiTextureMaterial("multiTexturePipeline", "./assets/grass.ppm", "./assets/sand.ppm", "./assets/dirt.ppm", "./assets/snow.ppm");
             material.AddUniform(new Uniform("gVP", "mat4", m_camera.GetViewProjMatrix()
                     .DataPtr()));
             material.AddUniform(new Uniform("sampler1", 0));
@@ -455,14 +459,15 @@ struct GraphicsApp
             material.AddUniform(new Uniform("sampler3", 2));
             material.AddUniform(new Uniform("sampler4", 3));
         }
-        else if (mMode == "QUAD"){
+        else if (mMode == "QUAD")
+        {
             // import std.stdio;
-            
-            Pipeline texturePipeline = new Pipeline("multiTexturePipeline", "./pipelines/tesselator/basic.vert", "./pipelines/tesselator/basic.frag", 
+
+            Pipeline texturePipeline = new Pipeline("multiTexturePipeline", "./pipelines/tesselator/basic.vert", "./pipelines/tesselator/basic.frag",
                 "./pipelines/tesselator/basic.tesc", "./pipelines/tesselator/basic.tese");
-            
+
             // Pipeline texturePipeline = new Pipeline("multiTexturePipeline","./pipelines/basic/basic.vert","./pipelines/basic/basic.frag");
-            material = new MutliTextureTesselated("multiTexturePipeline", "./assets/sand.ppm", "./assets/grass.ppm", "./assets/dirt.ppm", "./assets/snow.ppm","./assets/heightmap.ppm");
+            material = new MutliTextureTesselated("multiTexturePipeline", "./assets/grass.ppm", "./assets/sand.ppm", "./assets/dirt.ppm", "./assets/snow.ppm", "./assets/heightmap.ppm");
             material.AddUniform(new Uniform("gVP", "mat4", m_camera.GetViewProjMatrix()
                     .DataPtr()));
             material.AddUniform(new Uniform("gView", "mat4", m_camera.GetMatrix()
@@ -474,10 +479,11 @@ struct GraphicsApp
             material.AddUniform(new Uniform("gHeightMap", 4));
         }
 
-        foreach(ref mesh; mTerrainMeshes){
+        foreach (ref mesh; mTerrainMeshes)
+        {
             mesh.mMaterial = material;
         }
-        
+
     }
 
     /// Update gamestate
@@ -509,13 +515,14 @@ struct GraphicsApp
 
         PipelineUse("multiTexturePipeline");
 
-        foreach(mesh; mTerrainMeshes)
+        foreach (mesh; mTerrainMeshes)
         {
             mActiveMesh = mesh;
             //mesh updating
             mActiveMesh.mMaterial.Update();
             mActiveMesh.mMaterial.mUniformMap["gVP"].Set(m_camera.GetViewProjMatrix().DataPtr());
-            if(mMode == "QUAD"){
+            if (mMode == "QUAD")
+            {
                 mActiveMesh.mMaterial.mUniformMap["gView"].Set(m_camera.GetMatrix().DataPtr());
             }
             foreach (u; mActiveMesh.mMaterial.mUniformMap)
@@ -535,7 +542,6 @@ struct GraphicsApp
             mActiveMesh.mLODMethod.Render(m_camera.m_pos); // TODO should make a call to geomip
             // glBindVertexArray(0);
         }
-        
 
         SDL_GL_SwapWindow(mWindow);
     }
@@ -563,7 +569,7 @@ struct GraphicsApp
     }
 }
 
-string mMode= "QUAD"; // "GEOMIP" or "QUAD"
+string mMode = "QUAD"; // "GEOMIP" or "QUAD"
 
 /*
 //initializing for basic mesh
@@ -589,6 +595,3 @@ string mMode= "QUAD"; // "GEOMIP" or "QUAD"
    #0         #m 
 
    */
-
-
-  

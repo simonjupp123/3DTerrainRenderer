@@ -3,14 +3,15 @@
 in vec2 Tex3;
 in float Height;
 
-//out vec4 fragColor;
-layout(location = 0) out vec4 FragColor;
+out vec4 FragColor;
+//layout(location = 0) out vec4 FragColor;
 
 uniform sampler2D sampler1;
 uniform sampler2D sampler2;
 uniform sampler2D sampler3;
 uniform sampler2D sampler4;
 uniform sampler2D gHeightMap;
+
 
 uniform float gHeight0 = -8;
 uniform float gHeight1 = -5;
@@ -79,7 +80,7 @@ void main()
 
     float Diffuse = dot(Normal, lightDir);
 
-    Diffuse = max(0.2f, Diffuse);
+    Diffuse = max(0.4f, Diffuse);
 
     FragColor = vec4(TexColor * Diffuse,1.0);
  }
