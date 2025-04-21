@@ -18,6 +18,7 @@ import pipeline;
 import materials;
 import uniform;
 import vertex_info;
+import lod;
 
 /// Create a basic shader
 /// The result is a 'GLuint' representing the compiled 'program object' or otherwise 'graphics pipeline'
@@ -120,6 +121,8 @@ struct Mesh
     int mNumIndices;
     IMaterial mMaterial;
     GeomipManager mGeomipManager;
+    QuadList mQuadList;
+    LODMethod mLODMethod;
 
 }
 
@@ -130,25 +133,7 @@ struct Mesh
 //     vec2 texCoords;
 // }
 
-void PopulateVBO(ref GLfloat[] mVertexData, VertexData[] vertexDataArray)
-{ // Populate the VBO with vertex data
 
-    foreach (vertex; vertexDataArray)
-    {
-        // Add vertex position
-        mVertexData ~= vertex.vertices.x;
-        mVertexData ~= vertex.vertices.y;
-        mVertexData ~= vertex.vertices.z;
-
-        // Add texture coordinates
-        mVertexData ~= vertex.texCoords.x;
-        mVertexData ~= vertex.texCoords.y;
-
-        mVertexData ~= vertex.normals.x;
-        mVertexData ~= vertex.normals.y;
-        mVertexData ~= vertex.normals.z;
-    }
-}
 
 void CalculateNormals(ref VertexData[] vertexDataArray, GLuint[] indices)
 { // Calculate normals for each vertex based on the indices
@@ -205,105 +190,112 @@ Mesh MakeMeshFromHeightmap(HeightMap heightmap, int offsetX, int offsetZ)
             vertexDataArray ~= vertexData;
         }
     }
-
-    /*
-    // for (int i = 0; i < heightmap.width; i++)
-    // {
-    //     for (int j = 0; j < heightmap.height; j++)
-    //     {
-    //         //x,y,z information 
-    //         mVertexData ~= i;
-    //         mVertexData ~= heightmap.y_vals[i][j];
-    //         mVertexData ~= j;
-    //         //Textures
-    //         mVertexData ~= i;
-    //         mVertexData ~= j;
-
-    //     }
-    // }
-    
-
-   
-    //initializing for basic mesh
-    my very bad sketch of a quad
-            
-   #4          #3
-    ___________
-    |        /| 
-    |    /    |
-    | /       |
-    ___________
-   #1         #2 
-
-    Ordering for this would be 1,2,3 and 1,3,4
-
-    adding verts in this order
-    #m+1      #2m
-    ___________
-    |        /| 
-    |    /    |
-    | /       |
-    ___________
-   #0         #m 
-  
+    writeln("VertexDataArray length: ", vertexDataArray.length);
 
     
-    GLuint[] mIndices = InitIndices(heightmap.width, heightmap.height);
-    m.mNumIndices = cast(int) mIndices.length;
+    if (mMode == "GEOMIP"){
 
-    */
+        int patch_size = 3;
+        GeomipManager geomipManager = new GeomipManager(offsetX,offsetZ);
+        // geomipManager.GeomipInitIndices(heightmap.width, heightmap.height, patch_size);
+        GLuint[] mIndices = geomipManager.mIndices;
 
-    //initializion for fan mesh
+        //only after initializing indices can we calc normals:
+        //CalculateNormals(vertexDataArray, mIndices);// this would work without geomip
+        geomipManager.GeomipCalculateNormals(vertexDataArray, mIndices);
+        m.mGeomipManager = geomipManager;
+        m.mLODMethod = geomipManager;
+        m.mGeomipManager.PopulateVBO(mVertexData, vertexDataArray);
 
-    int patch_size = 3;
-    GeomipManager geomipManager = new GeomipManager(offsetX,offsetZ);
-    // GLuint[] mIndices = geomipManager.GeomipInitIndices(heightmap.width, heightmap.height, patch_size);
-    GLuint[] mIndices = geomipManager.mIndices;
+        // Vertex Arrays Object (VAO) Setup
+        glGenVertexArrays(1, &m.mVAO);
+        glBindVertexArray(m.mVAO);
 
-    //only after initializing indices can we calc normals:
-    //CalculateNormals(vertexDataArray, mIndices);// this would work without geomip
-    geomipManager.GeomipCalculateNormals(vertexDataArray, mIndices);
-    m.mGeomipManager = geomipManager;
-    PopulateVBO(mVertexData, vertexDataArray);
+        // Vertex Buffer Object (VBO) creation
+        glGenBuffers(1, &m.mVBO);
+        glBindBuffer(GL_ARRAY_BUFFER, m.mVBO);
+        glBufferData(GL_ARRAY_BUFFER, mVertexData.length * GLfloat.sizeof, mVertexData.ptr, GL_STATIC_DRAW);
 
-    // Vertex Arrays Object (VAO) Setup
-    glGenVertexArrays(1, &m.mVAO);
-    glBindVertexArray(m.mVAO);
+        //Index Buffer to increase efficiency
+        glGenBuffers(1, &m.mIBO);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m.mIBO);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, mIndices.length * GLuint.sizeof, mIndices.ptr, GL_STATIC_DRAW);
 
-    // Vertex Buffer Object (VBO) creation
-    glGenBuffers(1, &m.mVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, m.mVBO);
-    glBufferData(GL_ARRAY_BUFFER, mVertexData.length * GLfloat.sizeof, mVertexData.ptr, GL_STATIC_DRAW);
+        //positions
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, GLfloat.sizeof * 8, cast(void*) 0);
 
-    //Index Buffer to increase efficiency
-    glGenBuffers(1, &m.mIBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m.mIBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mIndices.length * GLuint.sizeof, mIndices.ptr, GL_STATIC_DRAW);
+        //Textures instead
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, GLfloat.sizeof * 8, cast(GLvoid*)(
+                GLfloat.sizeof * 3));
 
-    //positions
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, GLfloat.sizeof * 8, cast(void*) 0);
+        // normals
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, GLfloat.sizeof * 8, cast(GLvoid*)(
+                GLfloat.sizeof * 5));
 
-    // // normals
-    // glEnableVertexAttribArray(1);
-    // glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, GLfloat.sizeof * 6, cast(GLvoid*)(
-    //         GLfloat.sizeof * 3));
-    //Textures instead
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, GLfloat.sizeof * 8, cast(GLvoid*)(
-            GLfloat.sizeof * 3));
+        // Unbind our currently bound Vertex Array Object
+        glBindVertexArray(0);
+        // Disable any attributes we opened in our Vertex Attribute Array,
+        // as we do not want to leave them open. 
+        glDisableVertexAttribArray(0);
+        glDisableVertexAttribArray(1);
+        glDisableVertexAttribArray(2);
+    }
+    else if(mMode == "QUAD"){
 
-    // normals
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, GLfloat.sizeof * 8, cast(GLvoid*)(
-            GLfloat.sizeof * 5));
+        int n_patches = 512;
+        QuadList quadList = new QuadList(offsetX,offsetZ, n_patches,n_patches);
+        //only after initializing indices can we calc normals:
+        //CalculateNormals(vertexDataArray, mIndices);// this would work without geomip
+        // geomipManager.GeomipCalculateNormals(vertexDataArray, mIndices);
+        m.mQuadList = quadList;
+        m.mLODMethod = quadList;
+        
 
-    // Unbind our currently bound Vertex Array Object
-    glBindVertexArray(0);
-    // Disable any attributes we opened in our Vertex Attribute Array,
-    // as we do not want to leave them open. 
-    glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
+        //setup state
+        glGenVertexArrays(1, &m.mVAO);
+        glBindVertexArray(m.mVAO);
+        glGenBuffers(1, &m.mVBO);
+        glBindBuffer(GL_ARRAY_BUFFER, m.mVBO);
+        glGenBuffers(1, &m.mIBO);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m.mIBO);
+
+        int POS_LOC = 0;
+        int TEX_LOC = 1;
+
+        size_t NumFloats = 0;
+        
+        glEnableVertexAttribArray(POS_LOC);
+        glVertexAttribPointer(POS_LOC, 3, GL_FLOAT, GL_FALSE, GLfloat.sizeof * 5, cast(void*) (NumFloats * GLfloat.sizeof));
+        NumFloats += 3;
+
+        glEnableVertexAttribArray(TEX_LOC);
+        glVertexAttribPointer(TEX_LOC, 2, GL_FLOAT, GL_FALSE, GLfloat.sizeof * 5, cast(void*) (NumFloats * GLfloat.sizeof));
+        NumFloats += 2;
+        
+        //end of setup state
+
+        //populating buffers
+
+        m.mQuadList.InitVertices(mVertexData, vertexDataArray);
+        GLuint[] indices = [];
+        m.mQuadList.InitIndices(indices);
+        // writeln(mVertexData[0..50]);
+
+        //vertex buffer
+        glBufferData(GL_ARRAY_BUFFER, mVertexData.length * GLfloat.sizeof, mVertexData.ptr, GL_STATIC_DRAW);
+        //index buffer
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.length * GLuint.sizeof, indices.ptr, GL_STATIC_DRAW);
+        //end of populating buffers
+
+
+        glBindVertexArray(0);
+        glDisableVertexAttribArray(0);
+        glDisableVertexAttribArray(1);
+        // glDisableVertexAttribArray(2);
+    }
     return m;
 }
 
@@ -436,42 +428,56 @@ struct GraphicsApp
         // // mat4 projectionMatrix = camera.getProjectionMatrix(45.0f, mScreenWidth / float(mScreenHeight), 0.1f, 100.0f);
         // GLuint vp = glGetUniformLocation(mBasicGraphicsPipeline, "view");
         // glUniformMatrix4fv(vp, 1, GL_TRUE, m_camera.GetViewProjMatrix().DataPtr());
-
-
-        Pipeline texturePipeline = new Pipeline("multiTexturePipeline", "./pipelines/multitexture/basic.vert", "./pipelines/multitexture/basic.frag");
-        // Pipeline texturePipeline = new Pipeline("multiTexturePipeline","./pipelines/basic/basic.vert","./pipelines/basic/basic.frag");
-        IMaterial multiTextureMaterial = new MultiTextureMaterial("multiTexturePipeline", "./assets/sand.ppm", "./assets/grass.ppm", "./assets/dirt.ppm", "./assets/snow.ppm");
-        multiTextureMaterial.AddUniform(new Uniform("gVP", "mat4", m_camera.GetViewProjMatrix()
-                .DataPtr()));
-        multiTextureMaterial.AddUniform(new Uniform("sampler1", 0));
-        multiTextureMaterial.AddUniform(new Uniform("sampler2", 1));
-        multiTextureMaterial.AddUniform(new Uniform("sampler3", 2));
-        multiTextureMaterial.AddUniform(new Uniform("sampler4", 3));
-
         int base = 0;
         for (int i = 0; i < 1; i++)
         {
-            for(int j = 0; j < 2; j++)
+            for(int j = 0; j < 1; j++)
             {
                 writeln("Generating terrain mesh at ", i, " ", j);
                 // Generate a heightmap and create a mesh from it
                 Mesh mTerrainMesh = MakeMeshFromHeightmap(generateHeightmap(513, 513, 2, i*512+base,j*512+base), i*512+base,j*512+base);
-                mTerrainMesh.mMaterial = multiTextureMaterial;
+                
                 mTerrainMeshes ~= mTerrainMesh;
 
             }
         }
-        
-        // multiTextureMaterial.Update();
-        // foreach (ref m; mTerrainMeshes)
-        // {
-        //     m
-        // }
-        // mTerrainMesh.mMaterial = multiTextureMaterial;
 
-        // mActiveMesh = mTerrainMesh;
-        // MeshNode  m2   = new MeshNode("terrain",terrain,multiTextureMaterial);
-        // mSceneTree.GetRootNode().AddChildSceneNode(m2);
+        IMaterial material;
+        if (mMode == "GEOMIP"){
+            Pipeline texturePipeline = new Pipeline("multiTexturePipeline", "./pipelines/multitexture/basic.vert", "./pipelines/multitexture/basic.frag");
+            
+            // Pipeline texturePipeline = new Pipeline("multiTexturePipeline","./pipelines/basic/basic.vert","./pipelines/basic/basic.frag");
+            material = new MultiTextureMaterial("multiTexturePipeline", "./assets/sand.ppm", "./assets/grass.ppm", "./assets/dirt.ppm", "./assets/snow.ppm");
+            material.AddUniform(new Uniform("gVP", "mat4", m_camera.GetViewProjMatrix()
+                    .DataPtr()));
+            material.AddUniform(new Uniform("sampler1", 0));
+            material.AddUniform(new Uniform("sampler2", 1));
+            material.AddUniform(new Uniform("sampler3", 2));
+            material.AddUniform(new Uniform("sampler4", 3));
+        }
+        else if (mMode == "QUAD"){
+            // import std.stdio;
+            
+            Pipeline texturePipeline = new Pipeline("multiTexturePipeline", "./pipelines/tesselator/basic.vert", "./pipelines/tesselator/basic.frag", 
+                "./pipelines/tesselator/basic.tesc", "./pipelines/tesselator/basic.tese");
+            
+            // Pipeline texturePipeline = new Pipeline("multiTexturePipeline","./pipelines/basic/basic.vert","./pipelines/basic/basic.frag");
+            material = new MutliTextureTesselated("multiTexturePipeline", "./assets/sand.ppm", "./assets/grass.ppm", "./assets/dirt.ppm", "./assets/snow.ppm","./assets/heightmap.ppm");
+            material.AddUniform(new Uniform("gVP", "mat4", m_camera.GetViewProjMatrix()
+                    .DataPtr()));
+            material.AddUniform(new Uniform("gView", "mat4", m_camera.GetMatrix()
+                    .DataPtr()));
+            material.AddUniform(new Uniform("sampler1", 0));
+            material.AddUniform(new Uniform("sampler2", 1));
+            material.AddUniform(new Uniform("sampler3", 2));
+            material.AddUniform(new Uniform("sampler4", 3));
+            material.AddUniform(new Uniform("gHeightMap", 4));
+        }
+
+        foreach(ref mesh; mTerrainMeshes){
+            mesh.mMaterial = material;
+        }
+        
     }
 
     /// Update gamestate
@@ -502,12 +508,16 @@ struct GraphicsApp
         // glUniformMatrix4fv(viewProj, 1, GL_TRUE, m_camera.GetViewProjMatrix().DataPtr());
 
         PipelineUse("multiTexturePipeline");
+
         foreach(mesh; mTerrainMeshes)
         {
             mActiveMesh = mesh;
             //mesh updating
             mActiveMesh.mMaterial.Update();
             mActiveMesh.mMaterial.mUniformMap["gVP"].Set(m_camera.GetViewProjMatrix().DataPtr());
+            if(mMode == "QUAD"){
+                mActiveMesh.mMaterial.mUniformMap["gView"].Set(m_camera.GetMatrix().DataPtr());
+            }
             foreach (u; mActiveMesh.mMaterial.mUniformMap)
             {
                 u.Transfer();
@@ -521,7 +531,8 @@ struct GraphicsApp
             glPolygonMode(GL_FRONT_AND_BACK, mFillState); //https://docs.gl/gl4/glPolygonMode
 
             // glDrawElements(GL_TRIANGLES, mActiveMesh.mNumIndices, GL_UNSIGNED_INT, null);
-            mActiveMesh.mGeomipManager.RenderGeo(m_camera.m_pos); // TODO should make a call to geomip
+
+            mActiveMesh.mLODMethod.Render(m_camera.m_pos); // TODO should make a call to geomip
             // glBindVertexArray(0);
         }
         
@@ -551,3 +562,33 @@ struct GraphicsApp
         }
     }
 }
+
+string mMode= "QUAD"; // "GEOMIP" or "QUAD"
+
+/*
+//initializing for basic mesh
+    my very bad sketch of a quad
+            
+   #4          #3
+    ___________
+    |        /| 
+    |    /    |
+    | /       |
+    ___________
+   #1         #2 
+
+    Ordering for this would be 1,2,3 and 1,3,4
+
+    adding verts in this order
+    #m+1      #2m
+    ___________
+    |        /| 
+    |    /    |
+    | /       |
+    ___________
+   #0         #m 
+
+   */
+
+
+  

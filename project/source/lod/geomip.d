@@ -52,10 +52,18 @@ class GeomipManager : LODMethod{
     
     this(int offsetX, int offsetZ)
     {
-        GeomipInitIndices(m_width, m_height, m_patchsize);
         mOffsetX = offsetX;
         mOffsetZ = offsetZ;
+        GeomipInitIndices(m_width, m_height, m_patchsize);
+        
 
+    }
+
+    override void InitIndices()
+    {
+        // This method is overridden to initialize indices for the geomip manager
+        writeln("GeomipManager InitIndices called");
+        GeomipInitIndices(m_width, m_height, m_patchsize);
     }
 
     void GeomipInitIndices(int width, int height, int patch_size)
@@ -207,7 +215,7 @@ class GeomipManager : LODMethod{
         return ind;
     }
 
-    void RenderGeo(vec3 camera_pos)
+    override void Render(vec3 camera_pos)
     {
         //iterate over each patch and render
 
@@ -278,6 +286,26 @@ class GeomipManager : LODMethod{
         {
             // writeln(Normalize(vertex.normals));
             vertex.normals = Normalize(vertex.normals * -1);
+        }
+    }
+
+    void PopulateVBO(ref GLfloat[] mVertexData, VertexData[] vertexDataArray)
+    { // Populate the VBO with vertex data
+
+        foreach (vertex; vertexDataArray)
+        {
+            // Add vertex position
+            mVertexData ~= vertex.vertices.x;
+            mVertexData ~= vertex.vertices.y;
+            mVertexData ~= vertex.vertices.z;
+
+            // Add texture coordinates
+            mVertexData ~= vertex.texCoords.x;
+            mVertexData ~= vertex.texCoords.y;
+
+            mVertexData ~= vertex.normals.x;
+            mVertexData ~= vertex.normals.y;
+            mVertexData ~= vertex.normals.z;
         }
     }
 }

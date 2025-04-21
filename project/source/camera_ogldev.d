@@ -388,6 +388,7 @@ class BasicCamera
         return ViewProj;
     }
 
+
     mat4 GetViewportMatrix()
     {
         float HalfW = m_windowWidth / 2.0f;

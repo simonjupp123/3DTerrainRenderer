@@ -6,6 +6,7 @@ import std.stdio;
 import std.math;
 import std.random;
 import perlin;
+import std.algorithm;
 
 struct HeightMap
 {
@@ -38,7 +39,7 @@ HeightMap generateHeightmap(int width, int height, float scale, int offsetX, int
             float nx = (x+offsetX) * scale;
             float nz = (z+offsetZ) * scale;
             float val = 0.0f;
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < 2; i++)
             {
                 //this will add multiple layers of noise to create a more complex terrain
                 //each layer will have a different scale and amplitude
@@ -50,9 +51,41 @@ HeightMap generateHeightmap(int width, int height, float scale, int offsetX, int
             // writeln(perlinNoise(nx, nz));
         }
     }
+    saveHeightMapToPPM(heightmap, "./assets/heightmap.ppm");
+
+
     // debugHeightMap(heightmap);
 
     return heightmap;
+}
+
+void saveHeightMapToPPM(HeightMap heightmap, string filename) {
+    // Open the file for writing
+    File file = File(filename, "w");
+
+    // Write the PPM header
+    file.writefln("P3");
+    file.writefln("%d %d", heightmap.width, heightmap.height);
+    file.writefln("255");
+
+    // Normalize height values and write pixel data
+    foreach (z; 0 .. heightmap.height) {
+        foreach (x; 0 .. heightmap.width) {
+            float height = heightmap.y_vals[x][z];
+
+            // Normalize the height to a range of 0-255
+            int grayscale = cast(int) (height + 100);
+            // int grayscale = cast(int) height;
+
+            // Write the grayscale value as RGB (R=G=B for grayscale)
+            file.writefln("%d", grayscale);
+            file.writefln("%d", grayscale);
+            file.writefln("%d", grayscale);
+        }
+    }
+
+    file.close();
+    writeln("Heightmap saved to ", filename);
 }
 
 void debugHeightMap(HeightMap heightmap)

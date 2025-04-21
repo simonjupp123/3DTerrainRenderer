@@ -20,6 +20,10 @@ class Pipeline
     {
         CompilePipeline(pipelineName, vertexShaderSourceFilename, fragmentShaderSourceFilename);
     }
+    this(string pipelineName, string vertexShaderSourceFilename, string fragmentShaderSourceFilename,string tesselatorControlSourceName,string tesselatorEvalSourceName)
+    {
+        CompilePipeline(pipelineName, vertexShaderSourceFilename, fragmentShaderSourceFilename, tesselatorControlSourceName, tesselatorEvalSourceName); 
+    }
 
     /// Create a shader and store it in our pipelines map
     GLuint CompilePipeline(string pipelineName, string vertexShaderSourceFilename, string fragmentShaderSourceFilename)
@@ -31,7 +35,6 @@ class Pipeline
             int result;
             // Our goal with glGetShaderiv is to retrieve the compilation status
             glGetShaderiv(shaderObject, GL_COMPILE_STATUS, &result);
-
             if (result == GL_FALSE)
             {
                 int length;
@@ -40,6 +43,7 @@ class Pipeline
                 glGetShaderInfoLog(shaderObject, length, &length, errorMessages.ptr);
                 writeln(errorMessages);
             }
+            
         }
 
         // Compile our shaders
@@ -86,6 +90,115 @@ class Pipeline
         // Delete the individual shaders once we are done
         glDeleteShader(vertexShader);
         glDeleteShader(fragmentShader);
+
+        // Store in the static pipeline map
+        mPipelineName = pipelineName;
+        sPipeline[mPipelineName] = mProgramObjectID;
+
+        // For debugging purposes, print out all information about the pipeline that has ben created
+        PrintShaderAttributesAndUniforms(mPipelineName, mProgramObjectID);
+
+        return mProgramObjectID;
+    }
+    GLuint CompilePipeline(string pipelineName, string vertexShaderSourceFilename, string fragmentShaderSourceFilename, string tesselatorControlSourceName,string tesselatorEvalSourceName)
+    {
+        // Local nested function -- not meant for otherwise calling freely
+        void CheckShaderError(GLuint shaderObject)
+        {
+            // Retrieve the result of our compilation
+            int result;
+            // Our goal with glGetShaderiv is to retrieve the compilation status
+            glGetShaderiv(shaderObject, GL_COMPILE_STATUS, &result);
+            // If the result is GL_FALSE, then we have an error
+            if (result == GL_FALSE)
+            {
+                int length;
+                glGetShaderiv(shaderObject, GL_INFO_LOG_LENGTH, &length);
+                GLchar[] errorMessages = new GLchar[length];
+                glGetShaderInfoLog(shaderObject, length, &length, errorMessages.ptr);
+                writeln(errorMessages);
+            }
+        }
+
+        // Compile our shaders
+        GLuint vertexShader;
+        GLuint fragmentShader;
+        GLuint tesselatorControlShader;
+        GLuint tesselatorEvalShader;
+
+        // Use a string mixin to simply 'load' the text from a file into these
+        // strings that will otherwise be processed.
+        string vertexSource = readText(vertexShaderSourceFilename);
+        string fragmentSource = readText(fragmentShaderSourceFilename);
+        string tesselatorControlSource = readText(tesselatorControlSourceName);
+        string tesselatorEvalSource = readText(tesselatorEvalSourceName);
+
+        // Compile vertex shader
+        vertexShader = glCreateShader(GL_VERTEX_SHADER);
+        // const char* vSource = toStringz(vertexSource);
+        const char* vSource = vertexSource.ptr;
+        glShaderSource(vertexShader, 1, &vSource, null);
+        glCompileShader(vertexShader);
+        CheckShaderError(vertexShader);
+
+        // Compile fragment shader
+        fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+        // const char* fSource = toStringz(fragmentSource);
+        const char* fSource = fragmentSource.ptr;
+        glShaderSource(fragmentShader, 1, &fSource, null);
+        glCompileShader(fragmentShader);
+        CheckShaderError(fragmentShader);
+        
+        // Compile tesselator control shader
+        tesselatorControlShader = glCreateShader(GL_TESS_CONTROL_SHADER);
+        // const char* tcSource = toStringz(tesselatorControlSource);
+        const char* tcSource = tesselatorControlSource.ptr;
+        glShaderSource(tesselatorControlShader, 1, &tcSource, null);
+        glCompileShader(tesselatorControlShader);
+        CheckShaderError(tesselatorControlShader);
+
+        // Compile tesselator evaluation shader
+        tesselatorEvalShader = glCreateShader(GL_TESS_EVALUATION_SHADER);
+        // const char* teSource = toStringz(tesselatorEvalSource);
+        const char* teSource = tesselatorEvalSource.ptr;
+        glShaderSource(tesselatorEvalShader, 1, &teSource, null);
+        glCompileShader(tesselatorEvalShader);
+        CheckShaderError(tesselatorEvalShader);
+
+        // Create shader pipeline
+        mProgramObjectID = glCreateProgram();
+
+        // Link our two shader programs together.
+        // Consider this the equivalent of taking two .cpp files, and linking them into
+        // one executable file.
+        glAttachShader(mProgramObjectID, vertexShader);
+        glAttachShader(mProgramObjectID, fragmentShader);
+        glAttachShader(mProgramObjectID, tesselatorControlShader);
+        glAttachShader(mProgramObjectID, tesselatorEvalShader);
+        glLinkProgram(mProgramObjectID);
+        GLint linkStatus;
+        glGetProgramiv(mProgramObjectID, GL_LINK_STATUS, &linkStatus);
+        if (linkStatus == GL_FALSE) {
+            char[512] log;
+            GLsizei length;
+            glGetProgramInfoLog(mProgramObjectID, log.length, &length, log.ptr);
+            writeln("Program Linking Error: ", log[0 .. length]);
+        }
+
+        // Validate our program
+        glValidateProgram(mProgramObjectID);
+
+        // Once our final program Object has been created, we can
+        // detach and then delete our individual shaders.
+        glDetachShader(mProgramObjectID, vertexShader);
+        glDetachShader(mProgramObjectID, fragmentShader);
+        glDetachShader(mProgramObjectID, tesselatorControlShader);
+        glDetachShader(mProgramObjectID, tesselatorEvalShader);
+        // Delete the individual shaders once we are done
+        glDeleteShader(vertexShader);
+        glDeleteShader(fragmentShader);
+        glDeleteShader(tesselatorControlShader);
+        glDeleteShader(tesselatorEvalShader);
 
         // Store in the static pipeline map
         mPipelineName = pipelineName;

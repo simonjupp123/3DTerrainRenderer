@@ -34,10 +34,12 @@ class IMaterial{
     /// Add a new uniform to our materials
     void AddUniform(Uniform u){
 				// Assign the pipeline id of this uniform automatically
+       
         u.mPipelineId     = Pipeline.sPipeline[mPipelineName];
         // Check uniform name is valid, and then cache the location
+        
         u.CheckAndCacheUniform(mPipelineName,u.mUniformName);
-
+        
         mUniformMap[u.mUniformName] = u;
     }
 
