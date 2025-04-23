@@ -431,10 +431,12 @@ struct GraphicsApp
         // // mat4 projectionMatrix = camera.getProjectionMatrix(45.0f, mScreenWidth / float(mScreenHeight), 0.1f, 100.0f);
         // GLuint vp = glGetUniformLocation(mBasicGraphicsPipeline, "view");
         // glUniformMatrix4fv(vp, 1, GL_TRUE, m_camera.GetViewProjMatrix().DataPtr());
+        int num_chunks_width = 1;
+        int num_chunks_height = 1;
         int base = 0;
-        for (int i = 0; i < 1; i++)
+        for (int i = 0; i < num_chunks_height; i++)
         {
-            for (int j = 0; j < 1; j++)
+            for (int j = 0; j < num_chunks_width; j++)
             {
                 writeln("Generating terrain mesh at ", i, " ", j);
                 // Generate a heightmap and create a mesh from it
@@ -549,6 +551,7 @@ struct GraphicsApp
     /// Process 1 frame
     void AdvanceFrame()
     {
+        
         Input();
         Update();
         Render();
@@ -562,9 +565,24 @@ struct GraphicsApp
         // Run the graphics application loop
         SDL_WarpMouseInWindow(mWindow, mScreenWidth / 2, mScreenHeight / 2);
 
+        uint lastTime =  SDL_GetTicks();
+        int nbFrames = 0;
+
+ 
+       
+        
         while (mGameIsRunning)
         {
             AdvanceFrame();
+            uint currentTime = SDL_GetTicks();
+            nbFrames++;
+            if ( currentTime - lastTime >= 1000 ){ // If last prinf() was more than 1 sec ago
+                // printf and reset timer
+                printf("%f ms/frame\n", 1000/double(nbFrames));
+                // printf("%f frame/s\n", double(nbFrames));
+                nbFrames = 0;
+                lastTime += 1000;
+            }
         }
     }
 }

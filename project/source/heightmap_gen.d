@@ -49,15 +49,14 @@ HeightMap generateHeightmap(int width, int height, float scale, int offsetX, int
                 float amplitude = 20 * pow(0.5f, cast(float) i);
                 val += perlinNoise(nx * frequency / GRID_SIZE, nz * frequency / GRID_SIZE) * amplitude;
             }
-            heightmap.y_vals[x][z] = val * 1.5; //height scalin
-            // writeln(perlinNoise(nx, nz));
-            if (val > max_val)
+            heightmap.y_vals[x][z] = val * 1.5; //height scaling
+            if (heightmap.y_vals[x][z] > max_val)
             {
-                max_val = val;
+                max_val = heightmap.y_vals[x][z];
             }
-            if (val < min_val)
+            if (heightmap.y_vals[x][z] < min_val)
             {
-                min_val = val;
+                min_val = heightmap.y_vals[x][z];
             }
         }
     }
